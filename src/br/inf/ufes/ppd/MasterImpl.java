@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.Dictionary;
+import java.util.Iterator;
 import java.util.Set;
 
 /**
@@ -32,7 +33,7 @@ public class MasterImpl implements Master {
     private int attackCurrentId = 0;
     private Map<UUID, Slave> slaves = new TreeMap<>();
     private Map<UUID, String> slavesNames = new TreeMap<>();
-    private Map<Integer, Guess> guesses = new TreeMap<>();
+    private List<Guess> guesses = new ArrayList<>();
     private Map<Integer, Slave> attacks = new TreeMap<>();
 
     protected List<String> readDictionary(String filename) {
@@ -84,7 +85,7 @@ public class MasterImpl implements Master {
     @Override
     public void foundGuess(UUID slaveKey, int attackNumber, long currentindex,
             Guess currentguess) throws RemoteException {
-        guesses.put(attackNumber, currentguess);
+        guesses.add(currentguess);
 
         System.out.println("Guess encontrado!");
         System.out.println("Nome do escravo: " + slavesNames.get(slaveKey)
@@ -119,13 +120,24 @@ public class MasterImpl implements Master {
         int residualAmount = numberOfSlaves % dictionary.size();
         int currentIndex = 0;
 
-        for (Map.Entry<UUID, Slave> entry : slaves.entrySet()) {
-            Slave slave = entry.getValue();
+        Iterator entries = slaves.entrySet().iterator();
+        while (entries.hasNext()) {
+            Map.Entry entry = (Map.Entry) entries.next();
+
+            Slave slave = (Slave) entry.getValue();
             attacks.put(attackCurrentId, slave);
             attackCurrentId++;
 
-            slave.startSubAttack(ciphertext, knowntext, currentIndex,
-                    amountPerSlave - 1, attackCurrentId, this);
+            if (entries.hasNext()) {
+                slave.startSubAttack(ciphertext, knowntext, currentIndex,
+                        currentIndex + amountPerSlave - 1, attackCurrentId, this);
+                currentIndex += amountPerSlave;
+            } else {
+                slave.startSubAttack(ciphertext, knowntext, currentIndex,
+                        currentIndex + amountPerSlave + residualAmount - 1, 
+                        attackCurrentId, this);
+                currentIndex += amountPerSlave;
+            }
         }
 
         return null;

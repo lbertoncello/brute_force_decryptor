@@ -13,6 +13,7 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -24,8 +25,13 @@ public class SlaveImpl implements Slave {
 
     private final String dicFilename = "dictionary.txt";
     private final String docFilename = "teste.dat";
+    private UUID id = java.util.UUID.randomUUID();
 
-    protected List<String> readDictionary(String filename) {
+    public void setId(UUID id) {
+        this.id = id;
+    }
+    
+    private List<String> readDictionary(String filename) {
         List<String> dictionary = new ArrayList<>();
 
         try {
@@ -51,6 +57,74 @@ public class SlaveImpl implements Slave {
         return dictionary;
     }
 
+    private List<String> readDecryptedTextAsList(String filename) {
+        List<String> decryptedText = new ArrayList<>();
+
+        try {
+            FileReader file = new FileReader(filename);
+            BufferedReader readFile = new BufferedReader(file);
+
+            String line = readFile.readLine(); // lê a primeira linha
+// a variável "linha" recebe o valor "null" quando o processo
+// de repetição atingir o final do arquivo texto
+
+            while (line != null) {
+                String[] words = line.replace("\n", "").toLowerCase().split(" ");
+
+                for (String word : words) {
+                    decryptedText.add(word);
+                }
+
+                line = readFile.readLine(); // lê da segunda até a última linha
+            }
+
+            file.close();
+        } catch (IOException e) {
+            System.err.printf("Erro na abertura do arquivo: %s.\n",
+                    e.getMessage());
+        }
+
+        return decryptedText;
+    }
+
+    private byte[] readDecryptedTextAsBytes(String filename) {
+        StringBuilder sb = new StringBuilder();
+
+        try {
+            FileReader file = new FileReader(filename);
+            BufferedReader readFile = new BufferedReader(file);
+
+            String line = readFile.readLine(); // lê a primeira linha
+// a variável "linha" recebe o valor "null" quando o processo
+// de repetição atingir o final do arquivo texto
+
+            while (line != null) {
+                sb.append(line);
+
+                line = readFile.readLine(); // lê da segunda até a última linha
+            }
+
+            file.close();
+        } catch (IOException e) {
+            System.err.printf("Erro na abertura do arquivo: %s.\n",
+                    e.getMessage());
+        }
+
+        return sb.toString().getBytes();
+    }
+
+    private boolean checkDecryptedText(String textFilename, byte[] knowntext) {
+        List<String> decryptedText = readDecryptedTextAsList(textFilename);
+
+        for (String word : decryptedText) {
+            if (word.compareTo(Arrays.toString(knowntext)) == 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     @Override
     public void startSubAttack(byte[] ciphertext, byte[] knowntext,
             long initialwordindex, long finalwordindex, int attackNumber,
@@ -59,11 +133,23 @@ public class SlaveImpl implements Slave {
         List<String> dictionary = readDictionary(dicFilename);
 
         for (long i = initialwordindex; i <= finalwordindex; i++) {
+            String key = dictionary.get((int) i);
+            
             String[] args = new String[2];
-            args[0] = dictionary.get((int) i);
+            args[0] = key;
             args[1] = docFilename;
 
             Decrypt.main(args);
+
+            String decryptedFilename = key+".msg";
+            
+            if (checkDecryptedText(decryptedFilename, knowntext)) {
+                Guess guess = new Guess();
+                guess.setKey(key);
+                guess.setMessage(readDecryptedTextAsBytes(decryptedFilename));
+                
+                callbackinterface.foundGuess(this.id, attackNumber, i, guess);
+            }
         }
 
     }
@@ -75,13 +161,17 @@ public class SlaveImpl implements Slave {
         try {
             Registry registry = LocateRegistry.getRegistry(host);
             Master master = (Master) registry.lookup("Mestre");
-            
-            SlaveImpl obj = new SlaveImpl();
-            Slave objref = (Slave) UnicastRemoteObject.exportObject(obj, 0);
+
             UUID id = java.util.UUID.randomUUID();
             String name = "Escravo " + id;
             
+            SlaveImpl obj = new SlaveImpl();
+            obj.setId(id);
+            Slave objref = (Slave) UnicastRemoteObject.exportObject(obj, 0);
+            
+            System.err.println("Tentando se registrar no mestre...");
             master.addSlave(objref, name, id);
+            System.err.println("Registro concluído!");
         } catch (Exception e) {
             System.err.println("Master exception: " + e.toString());
             e.printStackTrace();
