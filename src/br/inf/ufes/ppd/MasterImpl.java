@@ -35,8 +35,18 @@ public class MasterImpl implements Master {
     private Map<UUID, String> slavesNames = new TreeMap<>();
     private List<Guess> guesses = new ArrayList<>();
     private Map<Integer, Slave> attacks = new TreeMap<>();
+    
+    private Guess[] listToArray(List<Guess> list) {
+        Guess[] guessesArray = new Guess[list.size()];
+        
+        for(int i = 0; i < guesses.size(); i++) {
+            guessesArray[i] = guesses.get(i);
+        }
+        
+        return guessesArray;
+    }
 
-    protected List<String> readDictionary(String filename) {
+    private List<String> readDictionary(String filename) {
         List<String> dictionary = new ArrayList<>();
 
         try {
@@ -65,13 +75,15 @@ public class MasterImpl implements Master {
     @Override
     public void addSlave(Slave s, String slaveName, UUID slavekey)
             throws RemoteException {
-        synchronized (slaves) {
-            slaves.put(slavekey, s);
-            slavesNames.put(slavekey, slaveName);
-        }
 
-        System.out.println("Slave de nome " + slaveName
-                + " foi registrado com sucesso!");
+        synchronized (slaves) {
+            if (!slaves.containsKey(slavekey)) {
+                slaves.put(slavekey, s);
+                slavesNames.put(slavekey, slaveName);
+                System.out.println("Slave de nome " + slaveName
+                        + " foi registrado com sucesso!");
+            }
+        }
     }
 
     @Override
@@ -87,18 +99,20 @@ public class MasterImpl implements Master {
             Guess currentguess) throws RemoteException {
         guesses.add(currentguess);
 
-        System.out.println("Guess encontrado!");
+        System.out.println("--------------Guess-----------------------");
         System.out.println("Nome do escravo: " + slavesNames.get(slaveKey)
                 + " índice: " + currentindex + " | Mensagem candidata: "
-                + currentguess.getMessage());
+                + new String(currentguess.getMessage()));
+        System.out.println("------------------------------------------");
     }
 
     @Override
     public void checkpoint(UUID slaveKey, int attackNumber, long currentindex)
             throws RemoteException {
-        System.out.println("Guess encontrado!");
+        System.out.println("--------------------Checkpoint--------------------");
         System.out.println("Nome do escravo: " + slavesNames.get(slaveKey)
                 + " índice: " + currentindex);
+        System.out.println("---------------------------------------------------");
     }
 
     /**
@@ -116,8 +130,8 @@ public class MasterImpl implements Master {
         int numberOfSlaves = slaves.size();
         List<String> dictionary = readDictionary(filename);
 
-        int amountPerSlave = numberOfSlaves / dictionary.size();
-        int residualAmount = numberOfSlaves % dictionary.size();
+        int amountPerSlave =  dictionary.size() / numberOfSlaves;
+        int residualAmount =  dictionary.size() % numberOfSlaves;
         int currentIndex = 0;
 
         Iterator entries = slaves.entrySet().iterator();
@@ -131,16 +145,17 @@ public class MasterImpl implements Master {
             if (entries.hasNext()) {
                 slave.startSubAttack(ciphertext, knowntext, currentIndex,
                         currentIndex + amountPerSlave - 1, attackCurrentId, this);
-                currentIndex += amountPerSlave;
             } else {
                 slave.startSubAttack(ciphertext, knowntext, currentIndex,
-                        currentIndex + amountPerSlave + residualAmount - 1, 
+                        currentIndex + amountPerSlave + residualAmount - 1,
                         attackCurrentId, this);
-                currentIndex += amountPerSlave;
             }
+
+            currentIndex += amountPerSlave;
         }
 
-        return null;
+        System.out.println("Ataque terminado!");
+        return listToArray(guesses);
     }
 
     public static void main(String[] args) {

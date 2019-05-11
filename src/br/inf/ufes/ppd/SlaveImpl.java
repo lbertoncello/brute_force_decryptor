@@ -6,6 +6,7 @@
 package br.inf.ufes.ppd;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.rmi.RemoteException;
@@ -16,6 +17,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -24,13 +27,16 @@ import java.util.UUID;
 public class SlaveImpl implements Slave {
 
     private final String dicFilename = "dictionary.txt";
-    private final String docFilename = "teste.dat";
+    private final String docFilename = "teste.txt.cipher";
+
     private UUID id = java.util.UUID.randomUUID();
+
+    private long currentIndex;
 
     public void setId(UUID id) {
         this.id = id;
     }
-    
+
     private List<String> readDictionary(String filename) {
         List<String> dictionary = new ArrayList<>();
 
@@ -57,6 +63,7 @@ public class SlaveImpl implements Slave {
         return dictionary;
     }
 
+    //Lê a mensagem que foi descriptografada
     private List<String> readDecryptedTextAsList(String filename) {
         List<String> decryptedText = new ArrayList<>();
 
@@ -87,6 +94,7 @@ public class SlaveImpl implements Slave {
         return decryptedText;
     }
 
+    //Lê a mensagem que foi descriptografada
     private byte[] readDecryptedTextAsBytes(String filename) {
         StringBuilder sb = new StringBuilder();
 
@@ -113,13 +121,30 @@ public class SlaveImpl implements Slave {
         return sb.toString().getBytes();
     }
 
-    private boolean checkDecryptedText(String textFilename, byte[] knowntext) {
-        List<String> decryptedText = readDecryptedTextAsList(textFilename);
+    //Verifica se  o arquivo existe
+    private boolean checkFileExists(String filename) {
+        File file = new File(filename);
 
-        for (String word : decryptedText) {
-            if (word.compareTo(Arrays.toString(knowntext)) == 0) {
-                return true;
+        return file.exists();
+    }
+
+    //Deleta o arquivo
+    private void deleteFile(String filename) {
+        File file = new File(filename);
+        file.delete();
+    }
+
+    //Verifica se o knowtext está na mensagem descriptografada
+    private boolean checkDecryptedText(String textFilename, byte[] knowntext) {
+        if (checkFileExists(textFilename)) {
+            List<String> decryptedText = readDecryptedTextAsList(textFilename);
+
+            for (String word : decryptedText) {
+                if (word.compareTo(new String(knowntext)) == 0) {
+                    return true;
+                }
             }
+            deleteFile(textFilename);
         }
 
         return false;
@@ -132,26 +157,52 @@ public class SlaveImpl implements Slave {
 
         List<String> dictionary = readDictionary(dicFilename);
 
-        for (long i = initialwordindex; i <= finalwordindex; i++) {
-            String key = dictionary.get((int) i);
-            
+        //Envia um checkpoint a cada 10 segundos
+        new java.util.Timer().schedule(
+                new java.util.TimerTask() {
+            @Override
+            public void run() {
+                System.err.println("Tentando enviar o checkpoint...");
+                try {
+                    callbackinterface.checkpoint(id, attackNumber, currentIndex);
+                    System.err.println("Checkpoint enviado com sucesso!");
+                } catch (RemoteException e) {
+                    System.err.println("Error trying to call 'checkpoint' "
+                            + "function: " + e.toString());
+                    e.printStackTrace();
+                }
+            }
+        },
+                10000
+        );
+
+        for (currentIndex = initialwordindex; currentIndex <= finalwordindex; currentIndex++) {
+            String key = dictionary.get((int) currentIndex);
+
+            if (key.length() < 3) {
+                continue;
+            }
+
             String[] args = new String[2];
             args[0] = key;
             args[1] = docFilename;
 
             Decrypt.main(args);
 
-            String decryptedFilename = key+".msg";
-            
+            String decryptedFilename = key + ".msg";
+
             if (checkDecryptedText(decryptedFilename, knowntext)) {
+                System.out.println("Decrypted filename: " + decryptedFilename);
                 Guess guess = new Guess();
                 guess.setKey(key);
                 guess.setMessage(readDecryptedTextAsBytes(decryptedFilename));
-                
-                callbackinterface.foundGuess(this.id, attackNumber, i, guess);
+
+                callbackinterface.foundGuess(this.id, attackNumber, currentIndex, guess);
             }
         }
 
+        callbackinterface.checkpoint(id, attackNumber, currentIndex);
+        System.out.println("Fim do subtaque do escravo " + id);
     }
 
     public static void main(String[] args) {
@@ -164,14 +215,34 @@ public class SlaveImpl implements Slave {
 
             UUID id = java.util.UUID.randomUUID();
             String name = "Escravo " + id;
-            
+
             SlaveImpl obj = new SlaveImpl();
             obj.setId(id);
             Slave objref = (Slave) UnicastRemoteObject.exportObject(obj, 0);
-            
+
             System.err.println("Tentando se registrar no mestre...");
             master.addSlave(objref, name, id);
             System.err.println("Registro concluído!");
+
+            //Se registra novamente a cada 30 segundos
+            new java.util.Timer().schedule(
+                    new java.util.TimerTask() {
+                @Override
+                public void run() {
+                    System.err.println("Tentando se re-registrar...");
+
+                    try {
+                        master.addSlave(objref, name, id);
+                        System.err.println("Re-registro feito com sucesso!");
+                    } catch (RemoteException e) {
+                        System.err.println("Error trying to call 'checkpoint' "
+                                + "function: " + e.toString());
+                        e.printStackTrace();
+                    }
+                }
+            },
+                    30000
+            );
         } catch (Exception e) {
             System.err.println("Master exception: " + e.toString());
             e.printStackTrace();

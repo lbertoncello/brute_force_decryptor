@@ -4,9 +4,9 @@
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
             <file>file:/D:/Projetos/Programação%20Distribuida/Trab1/src/br/inf/ufes/ppd/MasterImpl.java</file>
+            <file>file:/D:/Projetos/Programação%20Distribuida/Trab1/src/br/inf/ufes/ppd/ApplicationManager.java</file>
             <file>file:/D:/Projetos/Programação%20Distribuida/Trab1/src/br/inf/ufes/ppd/Master.java</file>
-            <file>file:/D:/Projetos/Programação%20Distribuida/Trab1/src/br/inf/ufes/ppd/Attacker.java</file>
-            <file>file:/D:/Projetos/Programação%20Distribuida/Trab1/src/br/inf/ufes/ppd/Slave.java</file>
+            <file>file:/D:/Projetos/Programação%20Distribuida/Trab1/src/br/inf/ufes/ppd/Encrypt.java</file>
             <file>file:/D:/Projetos/Programação%20Distribuida/Trab1/src/br/inf/ufes/ppd/Decrypt.java</file>
             <file>file:/D:/Projetos/Programação%20Distribuida/Trab1/src/br/inf/ufes/ppd/SlaveImpl.java</file>
             <file>file:/D:/Projetos/Programação%20Distribuida/Trab1/src/br/inf/ufes/ppd/Guess.java</file>
