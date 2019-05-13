@@ -35,6 +35,7 @@ public class MasterImpl implements Master {
     private Map<UUID, String> slavesNames = new TreeMap<>();
     private List<Guess> guesses = new ArrayList<>();
     private Map<Integer, Slave> attacks = new TreeMap<>();
+    private Map<UUID, SlaveInfo> dados_slaves = new TreeMap<>();
     
     private Guess[] listToArray(List<Guess> list) {
         Guess[] guessesArray = new Guess[list.size()];
@@ -78,7 +79,9 @@ public class MasterImpl implements Master {
 
         synchronized (slaves) {
             if (!slaves.containsKey(slavekey)) {
+                SlaveInfo si = new SlaveInfo(slavekey,slaveName,s);
                 slaves.put(slavekey, s);
+                dados_slaves.put(slavekey, si);
                 slavesNames.put(slavekey, slaveName);
                 System.out.println("Slave de nome " + slaveName
                         + " foi registrado com sucesso!");
@@ -91,6 +94,7 @@ public class MasterImpl implements Master {
         synchronized (slaves) {
             slaves.remove(slaveKey);
             slavesNames.remove(slaveKey);
+            dados_slaves.remove(slaveKey);
         }
     }
 
@@ -104,6 +108,9 @@ public class MasterImpl implements Master {
                 + " índice: " + currentindex + " | Mensagem candidata: "
                 + new String(currentguess.getMessage()));
         System.out.println("------------------------------------------");
+        
+        dados_slaves.get(slaveKey).setCorrente_Index((int)currentindex);
+        
     }
 
     @Override
@@ -113,6 +120,23 @@ public class MasterImpl implements Master {
         System.out.println("Nome do escravo: " + slavesNames.get(slaveKey)
                 + " índice: " + currentindex);
         System.out.println("---------------------------------------------------");
+        
+        if(this.dados_slaves.get(slaveKey).getTempo() == 0)
+        {
+            this.dados_slaves.get(slaveKey).setTempo(System.nanoTime()/1000000000);
+        }
+        else
+        {
+            long t = System.nanoTime()/1000000000;
+            
+            long diff = this.dados_slaves.get(slaveKey).getTempo()-t;
+            
+            if(diff > 20 && !this.dados_slaves.get(slaveKey).isTerminou())
+            {
+                System.out.println("Remover escravo");
+            }
+        }
+        
     }
 
     /**
@@ -137,15 +161,21 @@ public class MasterImpl implements Master {
         Iterator entries = slaves.entrySet().iterator();
         while (entries.hasNext()) {
             Map.Entry entry = (Map.Entry) entries.next();
-
+            UUID idd = (UUID) entry.getKey();
+            
             Slave slave = (Slave) entry.getValue();
             attacks.put(attackCurrentId, slave);
             attackCurrentId++;
+            
+            dados_slaves.get(idd).setInicio_Index(currentIndex);
 
             if (entries.hasNext()) {
+                dados_slaves.get(idd).setFinal_Index(currentIndex+ amountPerSlave - 1);
+                
                 slave.startSubAttack(ciphertext, knowntext, currentIndex,
                         currentIndex + amountPerSlave - 1, attackCurrentId, this);
             } else {
+                dados_slaves.get(idd).setFinal_Index(currentIndex + amountPerSlave+amountPerSlave - 1);
                 slave.startSubAttack(ciphertext, knowntext, currentIndex,
                         currentIndex + amountPerSlave + residualAmount - 1,
                         attackCurrentId, this);
