@@ -21,6 +21,8 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.Dictionary;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -119,7 +121,7 @@ public class MasterImpl implements Master {
     @Override
     public void checkpoint(UUID slaveKey, int attackNumber, long currentindex)
             throws RemoteException {
-        
+
         if (slavesInfo.get(slaveKey).getFinal_Index() == currentindex) {
             slavesInfo.get(slaveKey).setTerminou(true);
             System.out.println("Último checkpoint!");
@@ -161,6 +163,7 @@ public class MasterImpl implements Master {
 
         int numberOfSlaves = slaves.size();
         List<String> dictionary = readDictionary(filename);
+        List<Timer> timers = new ArrayList<>();
 
         final int amountPerSlave = dictionary.size() / numberOfSlaves;
         final int residualAmount = dictionary.size() % numberOfSlaves;
@@ -175,9 +178,11 @@ public class MasterImpl implements Master {
             attacks.put(attackCurrentId, slave);
             attackCurrentId++;
 
-            SlaveThread slaveThread;
+            // creating timer task, timer
+            Timer timer = new Timer();
 
-            new java.util.Timer().schedule(new java.util.TimerTask() {
+            // scheduling the task at interval
+            timer.schedule(new java.util.TimerTask() {
                 @Override
                 public void run() {
                     System.err.println("Tentando verificar se o escravo ainda funciona...");
@@ -192,8 +197,10 @@ public class MasterImpl implements Master {
                     }
                 }
             },
-                    20000
-            );
+                    20000,
+                    20000);
+            
+            timers.add(timer);
 
             slavesInfo.get(entry.getKey()).setInicio_Index(currentIndex);
 
@@ -226,6 +233,11 @@ public class MasterImpl implements Master {
             }
 
         };
+        
+        for(Timer timer : timers) {
+            timer.cancel();
+        }
+        
         System.out.println("Ataque terminado!");
         return listToArray(guesses);
     }

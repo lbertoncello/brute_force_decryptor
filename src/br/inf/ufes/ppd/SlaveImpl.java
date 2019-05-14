@@ -16,6 +16,7 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Timer;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -161,29 +162,29 @@ public class SlaveImpl implements Slave {
 
         List<String> dictionary = readDictionary(dicFilename);
 
-        //Envia um checkpoint a cada 10 segundos
-        new java.util.Timer().schedule(
-                new java.util.TimerTask() {
-            @Override
-            public void run() {
-                System.err.println("Tentando enviar o checkpoint...");
-                try {
-                    callbackinterface.checkpoint(id, attackNumber, currentIndex);
-
-                    System.err.println("Checkpoint enviado com sucesso!");
-                    ;
-                } catch (RemoteException e) {
-                    System.err.println("Error trying to call 'checkpoint' "
-                            + "function: " + e.toString());
-                    e.printStackTrace();
-                }
-            }
-        },
-                10000
-        );
-
         Thread thread = new Thread() {
             public void run() {
+                Timer timer = new Timer();
+
+                //Envia um checkpoint a cada 10 segundos
+                timer.schedule(new java.util.TimerTask() {
+                    @Override
+                    public void run() {
+                        System.err.println("Tentando enviar o checkpoint...");
+                        try {
+                            callbackinterface.checkpoint(id, attackNumber, currentIndex);
+
+                            System.err.println("Checkpoint enviado com sucesso!");
+                        } catch (RemoteException e) {
+                            System.err.println("Error trying to call 'checkpoint' "
+                                    + "function: " + e.toString());
+                            e.printStackTrace();
+                        }
+                    }
+                },      
+                        10000,
+                        10000);
+
                 for (currentIndex = initialwordindex; currentIndex <= finalwordindex; currentIndex++) {
                     String key = dictionary.get((int) currentIndex);
 
@@ -219,6 +220,7 @@ public class SlaveImpl implements Slave {
                     Logger.getLogger(SlaveImpl.class.getName()).log(Level.SEVERE, null, ex);
                 }
 
+                timer.cancel();
                 System.out.println("Fim do subtaque do escravo " + id);
             }
 
@@ -245,9 +247,10 @@ public class SlaveImpl implements Slave {
             master.addSlave(objref, name, id);
             System.err.println("Registro concluído!");
 
+            Timer timer = new Timer();
+
             //Se registra novamente a cada 30 segundos
-            new java.util.Timer().schedule(
-                    new java.util.TimerTask() {
+            timer.schedule(new java.util.TimerTask() {
                 @Override
                 public void run() {
                     System.err.println("Tentando se re-registrar...");
@@ -256,16 +259,16 @@ public class SlaveImpl implements Slave {
                         master.addSlave(objref, name, id);
                         System.err.println("Re-registro feito com sucesso!");
                     } catch (RemoteException e) {
-                        System.err.println("Error trying to call 'checkpoint' "
-                                + "function: " + e.toString());
+                        System.err.println("Erro ao se re-registrar!");
                         e.printStackTrace();
                     }
                 }
             },
-                    30000
-            );
+                30000,    
+                30000);
+
         } catch (Exception e) {
-            System.err.println("Master exception: " + e.toString());
+            System.err.println("Slave exception: " + e.toString());
             e.printStackTrace();
         }
     }
