@@ -33,9 +33,7 @@ public class SlaveImpl implements Slave {
 
     private long currentIndex;
     
-    private long momento_checkpoint = 0;
     
-    private boolean terminado = false;
 
     public void setId(UUID id) {
         this.id = id;
@@ -46,20 +44,6 @@ public class SlaveImpl implements Slave {
         return this.id;
     }
     
-    public void setMomento_checkpoint(long time)
-    {
-        this.momento_checkpoint = time;
-    }
-    
-    public long getMomento_checkpoint()
-    {
-        return this.momento_checkpoint;
-    }
-    
-    public boolean getTerminado()
-    {
-        return this.terminado;
-    }
 
     private List<String> readDictionary(String filename) {
         List<String> dictionary = new ArrayList<>();
@@ -190,8 +174,7 @@ public class SlaveImpl implements Slave {
                     callbackinterface.checkpoint(id, attackNumber, currentIndex);
                     
                     System.err.println("Checkpoint enviado com sucesso!");
-                    
-                    setMomento_checkpoint(System.nanoTime()/1000000000);
+                    ;
                 } catch (RemoteException e) {
                     System.err.println("Error trying to call 'checkpoint' "
                             + "function: " + e.toString());
@@ -230,7 +213,7 @@ public class SlaveImpl implements Slave {
         }
 
         callbackinterface.checkpoint(id, attackNumber, currentIndex);
-        this.terminado = true;
+       
         System.out.println("Fim do subtaque do escravo " + id);
     }
 
@@ -248,7 +231,8 @@ public class SlaveImpl implements Slave {
             SlaveImpl obj = new SlaveImpl();
             obj.setId(id);
             Slave objref = (Slave) UnicastRemoteObject.exportObject(obj, 0);
-
+            
+            
             System.err.println("Tentando se registrar no mestre...");
             master.addSlave(objref, name, id);
             System.err.println("Registro concluído!");
