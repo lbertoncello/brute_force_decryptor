@@ -29,7 +29,7 @@ public class ApplicationManager {
             
             System.out.println("------------------------Guesses------------------------");
             for(Guess guess : guesses) {
-                System.out.println("Guess: " + new String(guess.getMessage()));
+                System.out.println("Guess: " + guess.getKey());
             }
             System.out.println("-------------------------------------------------------");
         } catch (Exception e) {

@@ -38,15 +38,15 @@ public class MasterImpl implements Master {
     private Map<UUID, String> slavesNames = new ConcurrentHashMap<>();
     private List<Guess> guesses = new ArrayList<>();
     private Map<Integer, Slave> attacks = new ConcurrentHashMap<>();
-    private Map<UUID, SlaveInfo> dados_slaves = new ConcurrentHashMap<>();
-    
+    private Map<UUID, SlaveInfo> slavesInfo = new ConcurrentHashMap<>();
+
     private Guess[] listToArray(List<Guess> list) {
         Guess[] guessesArray = new Guess[list.size()];
-        
-        for(int i = 0; i < guesses.size(); i++) {
+
+        for (int i = 0; i < guesses.size(); i++) {
             guessesArray[i] = guesses.get(i);
         }
-        
+
         return guessesArray;
     }
 
@@ -82,9 +82,9 @@ public class MasterImpl implements Master {
 
         synchronized (slaves) {
             if (!slaves.containsKey(slavekey)) {
-                SlaveInfo si = new SlaveInfo(slavekey,slaveName,s);
+                SlaveInfo si = new SlaveInfo(slavekey, slaveName, s);
                 slaves.put(slavekey, s);
-                dados_slaves.put(slavekey, si);
+                slavesInfo.put(slavekey, si);
                 slavesNames.put(slavekey, slaveName);
                 System.out.println("Slave de nome " + slaveName
                         + " foi registrado com sucesso!");
@@ -97,7 +97,7 @@ public class MasterImpl implements Master {
         synchronized (slaves) {
             slaves.remove(slaveKey);
             slavesNames.remove(slaveKey);
-            dados_slaves.remove(slaveKey);
+            slavesInfo.remove(slaveKey);
         }
     }
 
@@ -108,12 +108,12 @@ public class MasterImpl implements Master {
 
         System.out.println("--------------Guess-----------------------");
         System.out.println("Nome do escravo: " + slavesNames.get(slaveKey)
-                + " índice: " + currentindex + " | Mensagem candidata: "
-                + new String(currentguess.getMessage()));
+                + " índice: " + currentindex + " | Chave candidata: "
+                + currentguess.getKey());
         System.out.println("------------------------------------------");
-        
-        dados_slaves.get(slaveKey).setCorrente_Index((int)currentindex);
-        
+
+        slavesInfo.get(slaveKey).setCorrente_Index((int) currentindex);
+
     }
 
     @Override
@@ -123,114 +123,65 @@ public class MasterImpl implements Master {
         System.out.println("Nome do escravo: " + slavesNames.get(slaveKey)
                 + " índice: " + currentindex);
         System.out.println("---------------------------------------------------");
-        
-        this.dados_slaves.get(slaveKey).setTempo(System.nanoTime()/1000000000);
-        
+
+        this.slavesInfo.get(slaveKey).setTempo(System.nanoTime() / 1000000000);
+
+        if (this.check_to_notify()) {
+            synchronized (slavesInfo) {
+
+                slavesInfo.notify();
+
+            }
+
+        }
     }
 
-    /**
-     * Operação oferecida pelo mestre para iniciar um ataque.
-     *
-     * @param ciphertext mensagem critografada
-     * @param knowntext trecho conhecido da mensagem decriptografada
-     * @return vetor de chutes: chaves candidatas e mensagem decriptografada com
-     * chaves candidatas
-     */
-    /*@Override
-    public Guess[] attack(byte[] ciphertext, byte[] knowntext)
-            throws RemoteException {
+    private boolean check_to_notify() {
+        Iterator entr = slaves.entrySet().iterator();
 
-        int numberOfSlaves = slaves.size();
-        List<String> dictionary = readDictionary(filename);
-
-        int amountPerSlave =  dictionary.size() / numberOfSlaves;
-        int residualAmount =  dictionary.size() % numberOfSlaves;
-        int currentIndex = 0;
-        
-        
-
-        Iterator entries = slaves.entrySet().iterator();
-        while (entries.hasNext()) {
-            Map.Entry entry = (Map.Entry) entries.next();
+        while (entr.hasNext()) {
+            Map.Entry entry = (Map.Entry) entr.next();
             UUID idd = (UUID) entry.getKey();
-            
-            Slave slave = (Slave) entry.getValue();
-            attacks.put(attackCurrentId, slave);
-            attackCurrentId++;
-            
-            dados_slaves.get(idd).setInicio_Index(currentIndex);
-            
-            new java.util.Timer().schedule(
-                new java.util.TimerTask() {
-            @Override
-            public void run() {
-                System.err.println("Tentando verificar se o escravo ainda funciona...");
-                
-                long t = System.nanoTime()/1000000000;
-                long diff = t - dados_slaves.get(idd).getTempo();
-                
-                if(diff > 20 && !dados_slaves.get(idd).isTerminou())
-                {
-                    System.out.println("Retirar escravo");
-                }
-                ;
-            }
-        },
-                20000
-        );
 
-            if (entries.hasNext()) {
-                dados_slaves.get(idd).setFinal_Index(currentIndex+ amountPerSlave - 1);
-                
-                slave.startSubAttack(ciphertext, knowntext, currentIndex,
-                        currentIndex + amountPerSlave - 1, attackCurrentId, this);
-            } else {
-                dados_slaves.get(idd).setFinal_Index(currentIndex + amountPerSlave + residualAmount - 1);
-                slave.startSubAttack(ciphertext, knowntext, currentIndex,
-                        currentIndex + amountPerSlave + residualAmount - 1,
-                        attackCurrentId, this);
+            if (!slavesInfo.get(idd).isTerminou()) {
+                return false;
             }
 
-            currentIndex += amountPerSlave;
         }
 
-        System.out.println("Ataque terminado!");
-        return listToArray(guesses);
-    }*/
-    
+        return true;
+    }
+
     @Override
     public Guess[] attack(byte[] ciphertext, byte[] knowntext)
             throws RemoteException {
-        
+
         int numberOfSlaves = slaves.size();
         List<String> dictionary = readDictionary(filename);
-        
+
         final int amountPerSlave = dictionary.size() / numberOfSlaves;
         final int residualAmount = dictionary.size() % numberOfSlaves;
         int attackCurrentId = 0;
         int currentIndex = 0;
-        
-        
+
         Iterator entries = slaves.entrySet().iterator();
         while (entries.hasNext()) {
             Map.Entry entry = (Map.Entry) entries.next();
             Slave currentSlave = (Slave) entry.getValue();
             attacks.put(attackCurrentId, currentSlave);
             attackCurrentId++;
-            
+
             SlaveThread slaveThread;
-            
-                new java.util.Timer().schedule(
-                    new java.util.TimerTask() {
+
+            new java.util.Timer().schedule(new java.util.TimerTask() {
                 @Override
                 public void run() {
                     System.err.println("Tentando verificar se o escravo ainda funciona...");
 
-                    long t = System.nanoTime()/1000000000;
-                    long diff = t - dados_slaves.get((UUID)entry.getKey()).getTempo();
+                    long t = System.nanoTime() / 1000000000;
+                    long diff = t - slavesInfo.get((UUID) entry.getKey()).getTempo();
 
-                    if(diff > 20 && !dados_slaves.get((UUID)entry.getKey()).isTerminou())
-                    {
+                    if (diff > 20 && !slavesInfo.get((UUID) entry.getKey()).isTerminou()) {
                         System.out.println("Retirar escravo");
                     }
                     ;
@@ -242,57 +193,36 @@ public class MasterImpl implements Master {
             TIVE QUE USAR THREAD PORQUE NÃO ESTAVA DE FATO PARALELO.
              */
             if (entries.hasNext()) {
-                dados_slaves.get((UUID)entry.getKey()).setFinal_Index(currentIndex+ amountPerSlave - 1);
-                slaveThread = new SlaveThread(currentSlave, dados_slaves.get((UUID)entry.getKey()),ciphertext, knowntext, currentIndex,
+                slavesInfo.get((UUID) entry.getKey()).setFinal_Index(currentIndex + amountPerSlave - 1);
+                slaveThread = new SlaveThread(currentSlave, slavesInfo.get((UUID) entry.getKey()), ciphertext, knowntext, currentIndex,
                         currentIndex + amountPerSlave - 1, attackCurrentId, this);
             } else {
-                dados_slaves.get((UUID)entry.getKey()).setFinal_Index(currentIndex + amountPerSlave + residualAmount - 1);
-                slaveThread = new SlaveThread(currentSlave, dados_slaves.get((UUID)entry.getKey()),ciphertext, knowntext, currentIndex,
+                slavesInfo.get((UUID) entry.getKey()).setFinal_Index(currentIndex + amountPerSlave + residualAmount - 1);
+                slaveThread = new SlaveThread(currentSlave, slavesInfo.get((UUID) entry.getKey()), ciphertext, knowntext, currentIndex,
                         currentIndex + amountPerSlave + residualAmount - 1,
                         attackCurrentId, this);
             }
-            
+
             currentIndex += amountPerSlave;
-            
+
             Thread thread = new Thread(slaveThread);
             thread.start();
-            
+
         }
 
         /*
-        FAZER ESPERAR ATÉ QUE OS ESCRAVOS TENHAM TERMINADO PRA RETORNAR A LISTA.
-        PRA SABER QUANDO ELES TERMINARAM ACHO QUE PODE CRIAR UMA LISTA BOOLEANA
-        DIZENDO SE ELES TERMINARAM OU NÃO.
+            FAZER ESPERAR ATÉ QUE OS ESCRAVOS TENHAM TERMINADO PRA RETORNAR A LISTA.
+            PRA SABER QUANDO ELES TERMINARAM ACHO QUE PODE CRIAR UMA LISTA BOOLEANA
+            DIZENDO SE ELES TERMINARAM OU NÃO.
          */
-
-        while(true)
-        {
-            Iterator entr = slaves.entrySet().iterator();
-            int ref = 1;
-
-            while (entr.hasNext()) {
-                Map.Entry entry = (Map.Entry) entr.next();
-                UUID idd = (UUID) entry.getKey();
-
-                if(!dados_slaves.get(idd).isTerminou())
-                {
-                    System.out.println("Terminou.");
-                    ref  = 0;
-                    try {
-                        Thread.sleep(4000);
-                    } catch (InterruptedException ex) {
-                        Logger.getLogger(MasterImpl.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                }
-
+        synchronized (slavesInfo) {
+            try {
+                slavesInfo.wait();
+            } catch (InterruptedException ex) {
+                Logger.getLogger(MasterImpl.class.getName()).log(Level.SEVERE, null, ex);
             }
-            
-            if(!(ref==0))
-            {
-                break;
-            }
-        }
-        
+
+        };
         System.out.println("Ataque terminado!");
         return listToArray(guesses);
     }
