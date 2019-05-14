@@ -21,6 +21,9 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.Dictionary;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -31,11 +34,11 @@ public class MasterImpl implements Master {
     private final String filename = "dictionary.txt";
 
     private int attackCurrentId = 0;
-    private Map<UUID, Slave> slaves = new TreeMap<>();
-    private Map<UUID, String> slavesNames = new TreeMap<>();
+    private Map<UUID, Slave> slaves = new ConcurrentHashMap<>();
+    private Map<UUID, String> slavesNames = new ConcurrentHashMap<>();
     private List<Guess> guesses = new ArrayList<>();
-    private Map<Integer, Slave> attacks = new TreeMap<>();
-    private Map<UUID, SlaveInfo> dados_slaves = new TreeMap<>();
+    private Map<Integer, Slave> attacks = new ConcurrentHashMap<>();
+    private Map<UUID, SlaveInfo> dados_slaves = new ConcurrentHashMap<>();
     
     private Guess[] listToArray(List<Guess> list) {
         Guess[] guessesArray = new Guess[list.size()];
@@ -121,21 +124,7 @@ public class MasterImpl implements Master {
                 + " índice: " + currentindex);
         System.out.println("---------------------------------------------------");
         
-        if(this.dados_slaves.get(slaveKey).getTempo() == 0)
-        {
-            this.dados_slaves.get(slaveKey).setTempo(System.nanoTime()/1000000000);
-        }
-        else
-        {
-            long t = System.nanoTime()/1000000000;
-            
-            long diff = this.dados_slaves.get(slaveKey).getTempo()-t;
-            
-            if(diff > 20 && !this.dados_slaves.get(slaveKey).isTerminou())
-            {
-                System.out.println("Remover escravo");
-            }
-        }
+        this.dados_slaves.get(slaveKey).setTempo(System.nanoTime()/1000000000);
         
     }
 
@@ -147,7 +136,7 @@ public class MasterImpl implements Master {
      * @return vetor de chutes: chaves candidatas e mensagem decriptografada com
      * chaves candidatas
      */
-    @Override
+    /*@Override
     public Guess[] attack(byte[] ciphertext, byte[] knowntext)
             throws RemoteException {
 
@@ -157,6 +146,8 @@ public class MasterImpl implements Master {
         int amountPerSlave =  dictionary.size() / numberOfSlaves;
         int residualAmount =  dictionary.size() % numberOfSlaves;
         int currentIndex = 0;
+        
+        
 
         Iterator entries = slaves.entrySet().iterator();
         while (entries.hasNext()) {
@@ -168,6 +159,25 @@ public class MasterImpl implements Master {
             attackCurrentId++;
             
             dados_slaves.get(idd).setInicio_Index(currentIndex);
+            
+            new java.util.Timer().schedule(
+                new java.util.TimerTask() {
+            @Override
+            public void run() {
+                System.err.println("Tentando verificar se o escravo ainda funciona...");
+                
+                long t = System.nanoTime()/1000000000;
+                long diff = t - dados_slaves.get(idd).getTempo();
+                
+                if(diff > 20 && !dados_slaves.get(idd).isTerminou())
+                {
+                    System.out.println("Retirar escravo");
+                }
+                ;
+            }
+        },
+                20000
+        );
 
             if (entries.hasNext()) {
                 dados_slaves.get(idd).setFinal_Index(currentIndex+ amountPerSlave - 1);
@@ -175,7 +185,7 @@ public class MasterImpl implements Master {
                 slave.startSubAttack(ciphertext, knowntext, currentIndex,
                         currentIndex + amountPerSlave - 1, attackCurrentId, this);
             } else {
-                dados_slaves.get(idd).setFinal_Index(currentIndex + amountPerSlave+amountPerSlave - 1);
+                dados_slaves.get(idd).setFinal_Index(currentIndex + amountPerSlave + residualAmount - 1);
                 slave.startSubAttack(ciphertext, knowntext, currentIndex,
                         currentIndex + amountPerSlave + residualAmount - 1,
                         attackCurrentId, this);
@@ -184,6 +194,105 @@ public class MasterImpl implements Master {
             currentIndex += amountPerSlave;
         }
 
+        System.out.println("Ataque terminado!");
+        return listToArray(guesses);
+    }*/
+    
+    @Override
+    public Guess[] attack(byte[] ciphertext, byte[] knowntext)
+            throws RemoteException {
+        
+        int numberOfSlaves = slaves.size();
+        List<String> dictionary = readDictionary(filename);
+        
+        final int amountPerSlave = dictionary.size() / numberOfSlaves;
+        final int residualAmount = dictionary.size() % numberOfSlaves;
+        int attackCurrentId = 0;
+        int currentIndex = 0;
+        
+        
+        Iterator entries = slaves.entrySet().iterator();
+        while (entries.hasNext()) {
+            Map.Entry entry = (Map.Entry) entries.next();
+            Slave currentSlave = (Slave) entry.getValue();
+            attacks.put(attackCurrentId, currentSlave);
+            attackCurrentId++;
+            
+            SlaveThread slaveThread;
+            
+                new java.util.Timer().schedule(
+                    new java.util.TimerTask() {
+                @Override
+                public void run() {
+                    System.err.println("Tentando verificar se o escravo ainda funciona...");
+
+                    long t = System.nanoTime()/1000000000;
+                    long diff = t - dados_slaves.get((UUID)entry.getKey()).getTempo();
+
+                    if(diff > 20 && !dados_slaves.get((UUID)entry.getKey()).isTerminou())
+                    {
+                        System.out.println("Retirar escravo");
+                    }
+                    ;
+                }
+            },
+                    20000
+            );
+            /*
+            TIVE QUE USAR THREAD PORQUE NÃO ESTAVA DE FATO PARALELO.
+             */
+            if (entries.hasNext()) {
+                dados_slaves.get((UUID)entry.getKey()).setFinal_Index(currentIndex+ amountPerSlave - 1);
+                slaveThread = new SlaveThread(currentSlave, dados_slaves.get((UUID)entry.getKey()),ciphertext, knowntext, currentIndex,
+                        currentIndex + amountPerSlave - 1, attackCurrentId, this);
+            } else {
+                dados_slaves.get((UUID)entry.getKey()).setFinal_Index(currentIndex + amountPerSlave + residualAmount - 1);
+                slaveThread = new SlaveThread(currentSlave, dados_slaves.get((UUID)entry.getKey()),ciphertext, knowntext, currentIndex,
+                        currentIndex + amountPerSlave + residualAmount - 1,
+                        attackCurrentId, this);
+            }
+            
+            currentIndex += amountPerSlave;
+            
+            Thread thread = new Thread(slaveThread);
+            thread.start();
+            
+        }
+
+        /*
+        FAZER ESPERAR ATÉ QUE OS ESCRAVOS TENHAM TERMINADO PRA RETORNAR A LISTA.
+        PRA SABER QUANDO ELES TERMINARAM ACHO QUE PODE CRIAR UMA LISTA BOOLEANA
+        DIZENDO SE ELES TERMINARAM OU NÃO.
+         */
+
+        while(true)
+        {
+            Iterator entr = slaves.entrySet().iterator();
+            int ref = 1;
+
+            while (entr.hasNext()) {
+                Map.Entry entry = (Map.Entry) entr.next();
+                UUID idd = (UUID) entry.getKey();
+
+                if(!dados_slaves.get(idd).isTerminou())
+                {
+                    System.out.println("Terminou.");
+                    ref  = 0;
+                    try {
+                        Thread.sleep(4000);
+                    } catch (InterruptedException ex) {
+                        Logger.getLogger(MasterImpl.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+
+            }
+            
+            if(!(ref==0))
+            {
+                break;
+            }
+        }
+        
         System.out.println("Ataque terminado!");
         return listToArray(guesses);
     }

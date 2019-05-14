@@ -213,6 +213,7 @@ public class SlaveImpl implements Slave {
         }
 
         callbackinterface.checkpoint(id, attackNumber, currentIndex);
+       
         System.out.println("Fim do subtaque do escravo " + id);
     }
 
