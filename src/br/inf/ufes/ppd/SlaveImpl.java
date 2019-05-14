@@ -32,18 +32,14 @@ public class SlaveImpl implements Slave {
     private UUID id = java.util.UUID.randomUUID();
 
     private long currentIndex;
-    
-    
 
     public void setId(UUID id) {
         this.id = id;
     }
-    
-    public UUID getId()
-    {
+
+    public UUID getId() {
         return this.id;
     }
-    
 
     private List<String> readDictionary(String filename) {
         List<String> dictionary = new ArrayList<>();
@@ -164,6 +160,7 @@ public class SlaveImpl implements Slave {
             SlaveManager callbackinterface) throws RemoteException {
 
         List<String> dictionary = readDictionary(dicFilename);
+
         //Envia um checkpoint a cada 10 segundos
         new java.util.Timer().schedule(
                 new java.util.TimerTask() {
@@ -172,7 +169,7 @@ public class SlaveImpl implements Slave {
                 System.err.println("Tentando enviar o checkpoint...");
                 try {
                     callbackinterface.checkpoint(id, attackNumber, currentIndex);
-                    
+
                     System.err.println("Checkpoint enviado com sucesso!");
                     ;
                 } catch (RemoteException e) {
@@ -184,37 +181,49 @@ public class SlaveImpl implements Slave {
         },
                 10000
         );
-        
-        
-                    
-        for (currentIndex = initialwordindex; currentIndex <= finalwordindex; currentIndex++) {
-            String key = dictionary.get((int) currentIndex);
 
-            if (key.length() < 3) {
-                continue;
+        Thread thread = new Thread() {
+            public void run() {
+                for (currentIndex = initialwordindex; currentIndex <= finalwordindex; currentIndex++) {
+                    String key = dictionary.get((int) currentIndex);
+
+                    if (key.length() < 3) {
+                        continue;
+                    }
+
+                    String[] args = new String[2];
+                    args[0] = key;
+                    args[1] = docFilename;
+
+                    Decrypt.main(args);
+
+                    String decryptedFilename = key + ".msg";
+
+                    if (checkDecryptedText(decryptedFilename, knowntext)) {
+                        System.out.println("Decrypted filename: " + decryptedFilename);
+                        Guess guess = new Guess();
+                        guess.setKey(key);
+                        guess.setMessage(readDecryptedTextAsBytes(decryptedFilename));
+
+                        try {
+                            callbackinterface.foundGuess(id, attackNumber, currentIndex, guess);
+                        } catch (RemoteException ex) {
+                            Logger.getLogger(SlaveImpl.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
+                }
+
+                try {
+                    callbackinterface.checkpoint(id, attackNumber, currentIndex);
+                } catch (RemoteException ex) {
+                    Logger.getLogger(SlaveImpl.class.getName()).log(Level.SEVERE, null, ex);
+                }
+
+                System.out.println("Fim do subtaque do escravo " + id);
             }
 
-            String[] args = new String[2];
-            args[0] = key;
-            args[1] = docFilename;
-
-            Decrypt.main(args);
-
-            String decryptedFilename = key + ".msg";
-
-            if (checkDecryptedText(decryptedFilename, knowntext)) {
-                System.out.println("Decrypted filename: " + decryptedFilename);
-                Guess guess = new Guess();
-                guess.setKey(key);
-                guess.setMessage(readDecryptedTextAsBytes(decryptedFilename));
-
-                callbackinterface.foundGuess(this.id, attackNumber, currentIndex, guess);
-            }
-        }
-
-        callbackinterface.checkpoint(id, attackNumber, currentIndex);
-       
-        System.out.println("Fim do subtaque do escravo " + id);
+        };
+        thread.start();
     }
 
     public static void main(String[] args) {
@@ -231,8 +240,7 @@ public class SlaveImpl implements Slave {
             SlaveImpl obj = new SlaveImpl();
             obj.setId(id);
             Slave objref = (Slave) UnicastRemoteObject.exportObject(obj, 0);
-            
-            
+
             System.err.println("Tentando se registrar no mestre...");
             master.addSlave(objref, name, id);
             System.err.println("Registro concluído!");

@@ -119,21 +119,24 @@ public class MasterImpl implements Master {
     @Override
     public void checkpoint(UUID slaveKey, int attackNumber, long currentindex)
             throws RemoteException {
+        
+        if (slavesInfo.get(slaveKey).getFinal_Index() == currentindex) {
+            slavesInfo.get(slaveKey).setTerminou(true);
+            System.out.println("Último checkpoint!");
+
+            if (this.check_to_notify()) {
+                synchronized (slavesInfo) {
+                    slavesInfo.notify();
+                }
+            }
+        }
+
         System.out.println("--------------------Checkpoint--------------------");
         System.out.println("Nome do escravo: " + slavesNames.get(slaveKey)
                 + " índice: " + currentindex);
         System.out.println("---------------------------------------------------");
 
         this.slavesInfo.get(slaveKey).setTempo(System.nanoTime() / 1000000000);
-
-        if (this.check_to_notify()) {
-            synchronized (slavesInfo) {
-
-                slavesInfo.notify();
-
-            }
-
-        }
     }
 
     private boolean check_to_notify() {
@@ -167,8 +170,9 @@ public class MasterImpl implements Master {
         Iterator entries = slaves.entrySet().iterator();
         while (entries.hasNext()) {
             Map.Entry entry = (Map.Entry) entries.next();
-            Slave currentSlave = (Slave) entry.getValue();
-            attacks.put(attackCurrentId, currentSlave);
+
+            Slave slave = (Slave) entry.getValue();
+            attacks.put(attackCurrentId, slave);
             attackCurrentId++;
 
             SlaveThread slaveThread;
@@ -183,31 +187,30 @@ public class MasterImpl implements Master {
 
                     if (diff > 20 && !slavesInfo.get((UUID) entry.getKey()).isTerminou()) {
                         System.out.println("Retirar escravo");
+                    } else {
+                        System.err.println("Escravo funcionando");
                     }
-                    ;
                 }
             },
                     20000
             );
-            /*
-            TIVE QUE USAR THREAD PORQUE NÃO ESTAVA DE FATO PARALELO.
-             */
+
+            slavesInfo.get(entry.getKey()).setInicio_Index(currentIndex);
+
             if (entries.hasNext()) {
-                slavesInfo.get((UUID) entry.getKey()).setFinal_Index(currentIndex + amountPerSlave - 1);
-                slaveThread = new SlaveThread(currentSlave, slavesInfo.get((UUID) entry.getKey()), ciphertext, knowntext, currentIndex,
-                        currentIndex + amountPerSlave - 1, attackCurrentId, this);
+                slavesInfo.get(entry.getKey()).setFinal_Index(currentIndex + amountPerSlave + 1);
+
+                slave.startSubAttack(ciphertext, knowntext, currentIndex,
+                        currentIndex + amountPerSlave, attackCurrentId, this);
             } else {
-                slavesInfo.get((UUID) entry.getKey()).setFinal_Index(currentIndex + amountPerSlave + residualAmount - 1);
-                slaveThread = new SlaveThread(currentSlave, slavesInfo.get((UUID) entry.getKey()), ciphertext, knowntext, currentIndex,
+                slavesInfo.get(entry.getKey()).setFinal_Index(currentIndex + amountPerSlave + residualAmount);
+
+                slave.startSubAttack(ciphertext, knowntext, currentIndex,
                         currentIndex + amountPerSlave + residualAmount - 1,
                         attackCurrentId, this);
             }
 
             currentIndex += amountPerSlave;
-
-            Thread thread = new Thread(slaveThread);
-            thread.start();
-
         }
 
         /*

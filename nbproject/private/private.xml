@@ -5,12 +5,8 @@
         <group>
             <file>file:/D:/Projetos/Programação%20Distribuida/Trab1/src/br/inf/ufes/ppd/MasterImpl.java</file>
             <file>file:/D:/Projetos/Programação%20Distribuida/Trab1/src/br/inf/ufes/ppd/ApplicationManager.java</file>
-            <file>file:/D:/Projetos/Programação%20Distribuida/Trab1/src/br/inf/ufes/ppd/Master.java</file>
-            <file>file:/D:/Projetos/Programação%20Distribuida/Trab1/src/br/inf/ufes/ppd/Encrypt.java</file>
-            <file>file:/D:/Projetos/Programação%20Distribuida/Trab1/src/br/inf/ufes/ppd/Decrypt.java</file>
+            <file>file:/D:/Projetos/Programação%20Distribuida/Trab1/src/br/inf/ufes/ppd/SlaveThread.java</file>
             <file>file:/D:/Projetos/Programação%20Distribuida/Trab1/src/br/inf/ufes/ppd/SlaveImpl.java</file>
-            <file>file:/D:/Projetos/Programação%20Distribuida/Trab1/src/br/inf/ufes/ppd/Guess.java</file>
-            <file>file:/D:/Projetos/Programação%20Distribuida/Trab1/src/br/inf/ufes/ppd/SlaveManager.java</file>
         </group>
     </open-files>
 </project-private>
