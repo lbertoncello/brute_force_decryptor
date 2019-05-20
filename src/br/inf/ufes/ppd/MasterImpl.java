@@ -41,6 +41,7 @@ public class MasterImpl implements Master {
     private List<Guess> guesses = new ArrayList<>();
     private Map<Integer, Slave> attacks = new ConcurrentHashMap<>();
     private Map<UUID, SlaveInfo> slavesInfo = new ConcurrentHashMap<>();
+    private Map<Integer, Map<UUID, SlaveInfo>> attacksInfo = new ConcurrentHashMap<>();
 
     private Guess[] listToArray(List<Guess> list) {
         Guess[] guessesArray = new Guess[list.size()];
@@ -76,6 +77,18 @@ public class MasterImpl implements Master {
         }
 
         return dictionary;
+    }
+
+    private void addSlaveInfo(int attackId, UUID slavekey, String slaveName, Slave s) {
+
+        SlaveInfo si = new SlaveInfo(slavekey, slaveName, s);
+        attacksInfo.get(attackId).put(slavekey, si);
+
+    }
+
+    private void addSlavesInfo(int attackId) {
+        Map<UUID, SlaveInfo> slavesInfo = new ConcurrentHashMap<>();
+        attacksInfo.put(attackId, slavesInfo);
     }
 
     @Override
@@ -122,6 +135,8 @@ public class MasterImpl implements Master {
     public void checkpoint(UUID slaveKey, int attackNumber, long currentindex)
             throws RemoteException {
 
+        slavesInfo.get(slaveKey).setCorrente_Index((int) currentindex);
+
         if (slavesInfo.get(slaveKey).getFinal_Index() == currentindex) {
             slavesInfo.get(slaveKey).setTerminou(true);
             System.out.println("Último checkpoint!");
@@ -167,7 +182,6 @@ public class MasterImpl implements Master {
 
         final int amountPerSlave = dictionary.size() / numberOfSlaves;
         final int residualAmount = dictionary.size() % numberOfSlaves;
-        int attackCurrentId = 0;
         int currentIndex = 0;
 
         Iterator entries = slaves.entrySet().iterator();
@@ -192,6 +206,9 @@ public class MasterImpl implements Master {
 
                     if (diff > 20 && !slavesInfo.get((UUID) entry.getKey()).isTerminou()) {
                         System.out.println("Retirar escravo");
+                        int current_index = slavesInfo.get((UUID) entry.getKey()).getCorrente_Index();
+                        int final_index = slavesInfo.get((UUID) entry.getKey()).getFinal_Index();
+
                     } else {
                         System.err.println("Escravo funcionando");
                     }
@@ -199,7 +216,7 @@ public class MasterImpl implements Master {
             },
                     20000,
                     20000);
-            
+
             timers.add(timer);
 
             slavesInfo.get(entry.getKey()).setInicio_Index(currentIndex);
@@ -233,11 +250,11 @@ public class MasterImpl implements Master {
             }
 
         };
-        
-        for(Timer timer : timers) {
+
+        for (Timer timer : timers) {
             timer.cancel();
         }
-        
+
         System.out.println("Ataque terminado!");
         return listToArray(guesses);
     }
