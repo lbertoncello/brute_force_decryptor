@@ -36,7 +36,7 @@ public class ApplicationManager {
     public static void main(String[] args) throws NoSuchAlgorithmException {
         String host = (args.length < 1) ? null : args[0];
         
-        if(Files.exists(Paths.get("t.txt"))) { 
+        if(Files.exists(Paths.get("teste.txt"))) { 
             System.out.println("Arquivo existe");
             try {
                 Registry registry = LocateRegistry.getRegistry(host);

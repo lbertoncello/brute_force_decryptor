@@ -9,6 +9,9 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -68,62 +71,47 @@ public class SlaveImpl implements Slave {
         return dictionary;
     }
 
-    //Lê a mensagem que foi descriptografada
-    private List<String> readDecryptedTextAsList(String filename) {
-        List<String> decryptedText = new ArrayList<>();
+        private byte[] readDecryptedTextAsBytes(String filename) {
 
+        Path fileLocation = Paths.get(filename);
+        byte[] data = null;
+        
         try {
-            FileReader file = new FileReader(filename);
-            BufferedReader readFile = new BufferedReader(file);
-
-            String line = readFile.readLine(); // lê a primeira linha
-// a variável "linha" recebe o valor "null" quando o processo
-// de repetição atingir o final do arquivo texto
-
-            while (line != null) {
-                String[] words = line.replace("\n", "").toLowerCase().split(" ");
-
-                for (String word : words) {
-                    decryptedText.add(word);
-                }
-
-                line = readFile.readLine(); // lê da segunda até a última linha
-            }
-
-            file.close();
-        } catch (IOException e) {
-            System.err.printf("Erro na abertura do arquivo: %s.\n",
-                    e.getMessage());
+            data = Files.readAllBytes(fileLocation);
+        } catch (IOException ex) {
+            Logger.getLogger(SlaveImpl.class.getName()).log(Level.SEVERE, null, ex);
         }
 
-        return decryptedText;
+        return data;
     }
 
-    //Lê a mensagem que foi descriptografada
-    private byte[] readDecryptedTextAsBytes(String filename) {
-        StringBuilder sb = new StringBuilder();
+    //Retorna true se 
+    private boolean compareBytes(byte[] text, byte[] knowntext) {
+        for (int i = 0; i < text.length - knowntext.length; i++) {
+            for (int j = 0; j < knowntext.length; j++) {
+                if (text[i + j] != knowntext[j]) {
+                    break;
+                }
+                if (j == knowntext.length - 1) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 
-        try {
-            FileReader file = new FileReader(filename);
-            BufferedReader readFile = new BufferedReader(file);
-
-            String line = readFile.readLine(); // lê a primeira linha
-// a variável "linha" recebe o valor "null" quando o processo
-// de repetição atingir o final do arquivo texto
-
-            while (line != null) {
-                sb.append(line);
-
-                line = readFile.readLine(); // lê da segunda até a última linha
+    //Verifica se o knowtext está na mensagem descriptografada
+    private boolean checkDecryptedText(String textFilename, byte[] knowntext) {
+        if (checkFileExists(textFilename)) {
+            byte[] decryptedText = readDecryptedTextAsBytes(textFilename);
+            if (compareBytes(decryptedText, knowntext)) {
+                return true;
             }
 
-            file.close();
-        } catch (IOException e) {
-            System.err.printf("Erro na abertura do arquivo: %s.\n",
-                    e.getMessage());
+            deleteFile(textFilename);
         }
 
-        return sb.toString().getBytes();
+        return false;
     }
 
     //Verifica se  o arquivo existe
@@ -139,21 +127,6 @@ public class SlaveImpl implements Slave {
         file.delete();
     }
 
-    //Verifica se o knowtext está na mensagem descriptografada
-    private boolean checkDecryptedText(String textFilename, byte[] knowntext) {
-        if (checkFileExists(textFilename)) {
-            List<String> decryptedText = readDecryptedTextAsList(textFilename);
-
-            for (String word : decryptedText) {
-                if (word.compareTo(new String(knowntext)) == 0) {
-                    return true;
-                }
-            }
-            deleteFile(textFilename);
-        }
-
-        return false;
-    }
 
     @Override
     public void startSubAttack(byte[] ciphertext, byte[] knowntext,

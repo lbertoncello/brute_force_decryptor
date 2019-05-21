@@ -38,15 +38,22 @@ public class MasterImpl implements Master {
     private int attackCurrentId = 0;
     private Map<UUID, Slave> slaves = new ConcurrentHashMap<>();
     private Map<UUID, String> slavesNames = new ConcurrentHashMap<>();
-    private List<Guess> guesses = new ArrayList<>();
+    //private Map<Guess> guesses = new ArrayList<>();
+    private Map<Integer, List<Guess>> guesses = new ConcurrentHashMap<>();
     //private Map<Integer, Slave> attacks = new ConcurrentHashMap<>();
     private Map<Integer, Map<UUID, SlaveInfo>> attacksInfo = new ConcurrentHashMap<>();
 
     private Guess[] listToArray(List<Guess> list) {
         Guess[] guessesArray = new Guess[list.size()];
-
+        int contador = 0;
         for (int i = 0; i < guesses.size(); i++) {
-            guessesArray[i] = guesses.get(i);
+            List<Guess> listGuess = guesses.get(i);
+
+            for (Guess guess : listGuess) {
+                guessesArray[contador] = guess;
+                contador++;
+            }
+
         }
 
         return guessesArray;
@@ -130,7 +137,7 @@ public class MasterImpl implements Master {
     @Override
     public void foundGuess(UUID slaveKey, int attackNumber, long currentindex,
             Guess currentguess) throws RemoteException {
-        guesses.add(currentguess);
+        guesses.get(attackNumber).add(currentguess);
 
         System.out.println("--------------Guess-----------------------");
         System.out.println("Nome do escravo: " + slavesNames.get(slaveKey)
@@ -160,7 +167,7 @@ public class MasterImpl implements Master {
         }
 
         System.out.println("--------------------Checkpoint--------------------");
-        System.out.println("Nome do escravo: " + slavesNames.get(slaveKey)
+        System.out.println("Nome do escravo: " + attacksInfo.get(attackNumber).get(slaveKey).getNome()
                 + " índice: " + currentindex);
         System.out.println("---------------------------------------------------");
 
@@ -183,8 +190,9 @@ public class MasterImpl implements Master {
         return true;
     }
 
-    private void redividirIndices(int attackCurrentId,UUID key){
+    private synchronized void redividirIndices(int attackCurrentId, UUID key, byte[] ciphertext, byte[] knowntext) throws RemoteException {
         System.out.println("Retirar escravo");
+        this.addSlavesInfo(attackCurrentId);
         int current_index = attacksInfo.get(attackCurrentId).get(key).getCorrente_Index();
         int final_index = attacksInfo.get(attackCurrentId).get(key).getFinal_Index();
         try {
@@ -192,8 +200,33 @@ public class MasterImpl implements Master {
         } catch (RemoteException ex) {
             Logger.getLogger(MasterImpl.class.getName()).log(Level.SEVERE, null, ex);
         }
+
+        int numberOfSlaves = slaves.size();
+        final int amountPerSlave = (current_index - final_index) / numberOfSlaves;
+        final int residualAmount = (current_index - final_index) % numberOfSlaves;
+
+        Iterator entries = slaves.entrySet().iterator();
+        while (entries.hasNext()) {
+            Map.Entry entry = (Map.Entry) entries.next();
+            Slave slave = (Slave) entry.getValue();
+
+            if (entries.hasNext()) {
+                attacksInfo.get(attackCurrentId).get(entry.getKey()).setFinal_Index(current_index + amountPerSlave + 1);
+
+                slave.startSubAttack(ciphertext, knowntext, current_index,
+                        current_index + amountPerSlave, attackCurrentId, this);
+            } else {
+                attacksInfo.get(attackCurrentId).get(entry.getKey()).setFinal_Index(current_index + amountPerSlave + residualAmount);
+
+                slave.startSubAttack(ciphertext, knowntext, current_index,
+                        current_index + amountPerSlave + residualAmount - 1,
+                        attackCurrentId, this);
+            }
+
+            current_index += amountPerSlave;
+        }
     }
-    
+
     @Override
     public Guess[] attack(byte[] ciphertext, byte[] knowntext)
             throws RemoteException {
@@ -203,6 +236,8 @@ public class MasterImpl implements Master {
         List<Timer> timers = new ArrayList<>();
 
         this.addSlavesInfo(attackCurrentId);
+        int attackId = attackCurrentId;
+        attackCurrentId++;
 
         final int amountPerSlave = dictionary.size() / numberOfSlaves;
         final int residualAmount = dictionary.size() % numberOfSlaves;
@@ -223,22 +258,28 @@ public class MasterImpl implements Master {
             timer.schedule(new java.util.TimerTask() {
                 @Override
                 public void run() {
+                    
+                    int attackId = attackCurrentId--;
 
                     try {
 
                         System.err.println("Tentando verificar se o escravo ainda funciona...");
 
                         long t = System.nanoTime() / 1000000000;
-                        long diff = t - attacksInfo.get(attackCurrentId).get((UUID) entry.getKey()).getTempo();
+                        long diff = t - attacksInfo.get(attackId).get((UUID) entry.getKey()).getTempo();
 
-                        if (diff > 20 && !attacksInfo.get(attackCurrentId).get((UUID) entry.getKey()).isTerminou()) {
-                            redividirIndices(attackCurrentId,(UUID) entry.getKey());
+                        if (diff > 20 && !attacksInfo.get(attackId).get((UUID) entry.getKey()).isTerminou()) {
+                            redividirIndices(attackId, (UUID) entry.getKey(), ciphertext, knowntext);
 
                         } else {
                             System.err.println("Escravo funcionando");
                         }
                     } catch (Exception er) {
-                        redividirIndices(attackCurrentId,(UUID) entry.getKey());
+                        try {
+                            redividirIndices(attackId, (UUID) entry.getKey(), ciphertext, knowntext);
+                        } catch (RemoteException ex) {
+                            Logger.getLogger(MasterImpl.class.getName()).log(Level.SEVERE, null, ex);
+                        }
                     }
                 }
             },
@@ -247,24 +288,26 @@ public class MasterImpl implements Master {
 
             timers.add(timer);
 
-            attacksInfo.get(attackCurrentId).get(entry.getKey()).setInicio_Index(currentIndex);
+            attacksInfo.get(attackId).get(entry.getKey()).setInicio_Index(currentIndex);
 
             if (entries.hasNext()) {
-                attacksInfo.get(attackCurrentId).get(entry.getKey()).setFinal_Index(currentIndex + amountPerSlave + 1);
+                attacksInfo.get(attackId).get(entry.getKey()).setFinal_Index(currentIndex + amountPerSlave + 1);
 
                 slave.startSubAttack(ciphertext, knowntext, currentIndex,
-                        currentIndex + amountPerSlave, attackCurrentId, this);
+                        currentIndex + amountPerSlave, attackId, this);
             } else {
-                attacksInfo.get(attackCurrentId).get(entry.getKey()).setFinal_Index(currentIndex + amountPerSlave + residualAmount);
+                attacksInfo.get(attackId).get(entry.getKey()).setFinal_Index(currentIndex + amountPerSlave + residualAmount);
 
                 slave.startSubAttack(ciphertext, knowntext, currentIndex,
                         currentIndex + amountPerSlave + residualAmount - 1,
-                        attackCurrentId, this);
+                        attackId, this);
             }
 
             currentIndex += amountPerSlave;
         }
-        attackCurrentId++;
+
+        List<Guess> Lguesses = new ArrayList<>();
+        guesses.put(attackId, Lguesses);
         /*
             FAZER ESPERAR ATÉ QUE OS ESCRAVOS TENHAM TERMINADO PRA RETORNAR A LISTA.
             PRA SABER QUANDO ELES TERMINARAM ACHO QUE PODE CRIAR UMA LISTA BOOLEANA
@@ -284,7 +327,7 @@ public class MasterImpl implements Master {
         }
 
         System.out.println("Ataque terminado!");
-        return listToArray(guesses);
+        return listToArray(guesses.get(attackId));
     }
 
     public static void main(String[] args) {
