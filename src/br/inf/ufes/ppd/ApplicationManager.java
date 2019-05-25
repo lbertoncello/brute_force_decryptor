@@ -35,11 +35,12 @@ public class ApplicationManager {
 
     public static void main(String[] args) throws NoSuchAlgorithmException {
         String host = (args.length < 1) ? null : args[0];
-        
+        //System.setProperty( "java.rmi.server.hostname", "192.168.0.0");
         if(Files.exists(Paths.get("teste.txt"))) { 
             System.out.println("Arquivo existe");
             try {
-                Registry registry = LocateRegistry.getRegistry(host);
+                
+                Registry registry = LocateRegistry.getRegistry("localhost");
                 Master master = (Master) registry.lookup("Mestre");
 
                 Guess[] guesses = master.attack("teste.txt.cipher".getBytes(), "ipsum".getBytes());

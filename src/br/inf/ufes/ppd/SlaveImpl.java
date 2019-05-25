@@ -178,10 +178,14 @@ public class SlaveImpl implements Slave {
                         Guess guess = new Guess();
                         guess.setKey(key);
                         guess.setMessage(readDecryptedTextAsBytes(decryptedFilename));
+                        System.out.println("gueses passou");
 
                         try {
+                            System.out.println("callback");
                             callbackinterface.foundGuess(id, attackNumber, currentIndex, guess);
+                            System.out.println("passou");
                         } catch (RemoteException ex) {
+                            System.out.println("Deu ruim");
                             Logger.getLogger(SlaveImpl.class.getName()).log(Level.SEVERE, null, ex);
                         }
                     }
@@ -195,6 +199,7 @@ public class SlaveImpl implements Slave {
 
                 timer.cancel();
                 System.out.println("Fim do subtaque do escravo " + id);
+                
             }
 
         };
@@ -206,7 +211,8 @@ public class SlaveImpl implements Slave {
         String host = (args.length < 1) ? null : args[0];
 
         try {
-            Registry registry = LocateRegistry.getRegistry(host);
+            //System.setProperty( "java.rmi.server.hostname", "192.168.0.0");
+            Registry registry = LocateRegistry.getRegistry("localhost");
             Master master = (Master) registry.lookup("Mestre");
 
             UUID id = java.util.UUID.randomUUID();
