@@ -5,7 +5,6 @@
  */
 package br.inf.ufes.ppd;
 
-import static br.inf.ufes.ppd.ApplicationManager.saveFile;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -17,9 +16,7 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
-import java.rmi.server.UnicastRemoteObject;
 import java.security.SecureRandom;
-import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.crypto.Cipher;
@@ -76,6 +73,8 @@ public class Cliente {
     public static void main(String[] args) throws RemoteException, NotBoundException, Exception {
         
         String hostname = (args.length < 2) ? null : args[2];
+        
+        
 
         byte[] chave = args[0].getBytes();
         
@@ -91,8 +90,8 @@ public class Cliente {
             Registry registry = LocateRegistry.getRegistry(hostname);
 
             Master master = (Master) registry.lookup("mestre");
-
-            Guess[] guesses = master.attack("teste.txt.cipher".getBytes(), "ipsum".getBytes());
+            String nome = args[1]+".cipher";
+            Guess[] guesses = master.attack(ciphertext, palavra);
 
             System.out.println("------------------------Guesses------------------------");
             
