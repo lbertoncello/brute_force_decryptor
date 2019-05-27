@@ -43,21 +43,21 @@ public class MasterImpl implements Master {
     private Map<Integer, List<Guess>> guesses = new ConcurrentHashMap<>();
     //private Map<Integer, Slave> attacks = new ConcurrentHashMap<>();
     private Map<Integer, Map<UUID, SlaveInfo>> attacksInfo = new ConcurrentHashMap<>();
+    private Map<Integer, List<Integer>> relatedAttacks = new ConcurrentHashMap<>();
 
     private Guess[] listToArray(List<Guess> list) {
-        Guess[] guessesArray = new Guess[list.size()];
+        Guess[] array = new Guess[list.size()];
         int contador = 0;
-        for (int i = 0; i < guesses.size(); i++) {
-            List<Guess> listGuess = guesses.get(i);
+        for (int i = 0; i < list.size(); i++) {
 
-            for (Guess guess : listGuess) {
-                guessesArray[contador] = guess;
+            for (Guess e : list) {
+                array[contador] = e;
                 contador++;
             }
 
         }
 
-        return guessesArray;
+        return array;
     }
 
     private List<Guess> mapToList(Map<Integer, List<Guess>> map) {
@@ -108,7 +108,7 @@ public class MasterImpl implements Master {
     private void addSlaveInfo(int attackId, UUID slavekey, String slaveName, Slave s) {
 
         SlaveInfo si = new SlaveInfo(slavekey, slaveName, s);
-        attacksInfo.get(attackId).put(slavekey, si).setTempo(attacksInfo.get(attackId - 1).get(slavekey).getTempo());
+        attacksInfo.get(attackId).put(slavekey, si).setTime(attacksInfo.get(attackId - 1).get(slavekey).getTime());
 
     }
 
@@ -124,7 +124,7 @@ public class MasterImpl implements Master {
             UUID key = (UUID) entry.getKey();
 
             SlaveInfo si = new SlaveInfo(key, slavesNames.get(key), slave);
-            si.setTempo(System.nanoTime() / 1000000000);
+            si.setTime(System.nanoTime() / 1000000000);
             attacksInfo.get(attackId).put(key, si);
 
         }
@@ -158,9 +158,8 @@ public class MasterImpl implements Master {
     public void foundGuess(UUID slaveKey, int attackNumber, long currentindex,
             Guess currentguess) throws RemoteException {
         try {
-            System.out.println("guess attack " + attackNumber);
-            System.out.println("tamanho guesses: " + guesses.size());
-            guesses.get(attackNumber).add(currentguess);
+            int originalAttackId = relatedAttacks.get(attackNumber).get(0);
+            guesses.get(originalAttackId).add(currentguess);
 
             System.out.println("--------------Guess-----------------------");
             System.out.println("Nome do escravo: " + slavesNames.get(slaveKey)
@@ -168,7 +167,7 @@ public class MasterImpl implements Master {
                     + currentguess.getKey());
             System.out.println("------------------------------------------");
 
-            attacksInfo.get(attackNumber).get(slaveKey).setCorrente_Index((int) currentindex);
+            attacksInfo.get(attackNumber).get(slaveKey).setCurrentIndex((int) currentindex);
         } catch (Exception er) {
             System.out.println(er);
             System.out.println("DEu merda");
@@ -180,32 +179,35 @@ public class MasterImpl implements Master {
     public void checkpoint(UUID slaveKey, int attackNumber, long currentindex)
             throws RemoteException {
 
-        attacksInfo.get(attackNumber).get(slaveKey).setCorrente_Index((int) currentindex);
+        attacksInfo.get(attackNumber).get(slaveKey).setCurrentIndex((int) currentindex);
 
-        this.attacksInfo.get(attackNumber).get(slaveKey).setTempo(System.nanoTime() / 1000000000);
+        this.attacksInfo.get(attackNumber).get(slaveKey).setTime(System.nanoTime() / 1000000000);
 
-        if (attacksInfo.get(attackNumber).get(slaveKey).getFinal_Index() == currentindex) {
-            attacksInfo.get(attackNumber).get(slaveKey).setTerminou(true);
+        if (attacksInfo.get(attackNumber).get(slaveKey).getFinalIndex() == currentindex) {
+            attacksInfo.get(attackNumber).get(slaveKey).setEnded(true);
             System.out.println("Último checkpoint!");
             System.out.println("Escravo " + attacksInfo.get(attackNumber).get(slaveKey).getNome() + " terminou");
-            if (this.check_to_notify()) {
-                synchronized (attacksInfo) {
-                    attacksInfo.notify();
+            System.out.println("ORIGINAL ID: " + relatedAttacks.get(attackNumber).get(0));
+            if (this.checkToNotify(attackNumber)) {
+                int originalAttackId = relatedAttacks.get(attackNumber).get(0);
+                synchronized (attacksInfo.get(originalAttackId)) {
+                    attacksInfo.get(originalAttackId).notify();
                 }
             }
+        } else {
+            System.out.println("--------------------Checkpoint--------------------");
+            System.out.println("Nome do escravo: " + attacksInfo.get(attackNumber).get(slaveKey).getNome()
+                    + " índice: " + currentindex);
+            System.out.println("---------------------------------------------------");
         }
-
-        System.out.println("--------------------Checkpoint--------------------");
-        System.out.println("Nome do escravo: " + attacksInfo.get(attackNumber).get(slaveKey).getNome()
-                + " índice: " + currentindex);
-        System.out.println("---------------------------------------------------");
 
         //for (int i = 0; i < attacksInfo.size(); i++) {
         //System.out.println("nome: "+this.attacksInfo.get(attackNumber).get(slaveKey).getNome()+" tempo: "+this.attacksInfo.get(attackNumber).get(slaveKey).getTempo());
         //}
     }
 
-    private boolean check_to_notify() {
+    /*
+    private boolean checkToNotify() {
         Iterator attacks = attacksInfo.entrySet().iterator();
 
         while (attacks.hasNext()) {
@@ -227,15 +229,36 @@ public class MasterImpl implements Master {
 
         return true;
     }
+     */
+    private boolean checkToNotify(int checkpointAttackId) {
+        Iterator attacks = attacksInfo.entrySet().iterator();
 
-    private synchronized void redividirIndices(int attackId, UUID key, byte[] ciphertext, byte[] knowntext) throws RemoteException {
-        System.out.println("tamanho : " + attacksInfo.size());
+        for (Integer attackId : relatedAttacks.get(checkpointAttackId)) {
+            Iterator entr = slaves.entrySet().iterator();
 
-        System.out.println("Retirar escravo " + attacksInfo.get(attackId).get(key).getNome());
-        int current_index = attacksInfo.get(attackId).get(key).getCorrente_Index() + 1;
-        int final_index = attacksInfo.get(attackId).get(key).getFinal_Index();
-        System.out.println("current_index: " + current_index);
-        System.out.println("final index: " + final_index);
+            while (entr.hasNext()) {
+                Map.Entry entry = (Map.Entry) entr.next();
+                UUID idd = (UUID) entry.getKey();
+
+                if (!attacksInfo.get(attackId).get(idd).isEnded()) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private synchronized void redivideIndex(int attackId, UUID key, byte[] ciphertext, byte[] knowntext) throws RemoteException {
+        System.err.println("O escravo " + attacksInfo.get(attackId).get(key).getNome() + " falhou!");
+        System.err.println("Redividindo ataque...");
+        
+        int initialIndex = attacksInfo.get(attackId).get(key).getCurrentIndex() + 1;
+        int finalIndex = attacksInfo.get(attackId).get(key).getFinalIndex();
+
+        List<Integer> _relatedAttacks = new ArrayList<>(relatedAttacks.get(attackId));
+        _relatedAttacks.add(currentAttackId);
+        relatedAttacks.put(currentAttackId, _relatedAttacks);
 
         attackId = currentAttackId;
         List<Guess> Lguesses = new ArrayList<>();
@@ -249,17 +272,13 @@ public class MasterImpl implements Master {
             Logger.getLogger(MasterImpl.class.getName()).log(Level.SEVERE, null, ex);
         }
 
-        if (current_index != final_index) {
-            System.out.println("novo attack: " + attackId);
+        if (initialIndex != finalIndex) {
+            System.out.println("Novo Attack: " + attackId);
             this.addSlavesInfo(attacksInfo.size());
-            
-            System.out.println("INDICE INICIAL: " + current_index);
-            System.out.println("INDICE FINAL: " + final_index);
 
             int numberOfSlaves = slaves.size();
-            System.out.println("NUM OF SLAVES: " + numberOfSlaves);
-            final int amountPerSlave = (final_index - current_index) / numberOfSlaves;
-            final int residualAmount = (final_index - current_index) % numberOfSlaves;
+            final int amountPerSlave = (finalIndex - initialIndex) / numberOfSlaves;
+            final int residualAmount = (finalIndex - initialIndex) % numberOfSlaves;
 
             //System.out.println("amount: "+amountPerSlave+" residual: "+residualAmount);
             Iterator entries = slaves.entrySet().iterator();
@@ -269,20 +288,17 @@ public class MasterImpl implements Master {
                 Slave slave = (Slave) entry.getValue();
 
                 if (entries.hasNext()) {
-                    attacksInfo.get(attacksInfo.size() - 1).get(entry.getKey()).setFinal_Index(current_index + amountPerSlave + 1);
-                    System.out.println("novo sub-ataque");
-                    slave.startSubAttack(ciphertext, knowntext, current_index,
-                            current_index + amountPerSlave, attackId, this);
-                    System.out.println("");
+                    attacksInfo.get(attacksInfo.size() - 1).get(entry.getKey()).setFinalIndex(initialIndex + amountPerSlave + 1);
+                    slave.startSubAttack(ciphertext, knowntext, initialIndex,
+                            initialIndex + amountPerSlave, attackId, this);
                 } else {
-                    attacksInfo.get(attacksInfo.size() - 1).get(entry.getKey()).setFinal_Index(current_index + amountPerSlave + residualAmount);
-                    System.out.println("novo sub-ataque");
-                    slave.startSubAttack(ciphertext, knowntext, current_index,
-                            current_index + amountPerSlave + residualAmount - 1,
+                    attacksInfo.get(attacksInfo.size() - 1).get(entry.getKey()).setFinalIndex(initialIndex + amountPerSlave + residualAmount);
+                    slave.startSubAttack(ciphertext, knowntext, initialIndex,
+                            initialIndex + amountPerSlave + residualAmount - 1,
                             attackId, this);
                 }
 
-                current_index += amountPerSlave;
+                initialIndex += amountPerSlave;
             }
         }
     }
@@ -312,6 +328,10 @@ public class MasterImpl implements Master {
             //attacks.put(currentAttackId, slave);
             //attackCurrentId++;
 
+            List<Integer> _relatedAttacks = new ArrayList<>();
+            _relatedAttacks.add(attackId);
+            relatedAttacks.put(attackId, _relatedAttacks);
+
             // creating timer task, timer
             Timer timer = new Timer();
 
@@ -329,23 +349,17 @@ public class MasterImpl implements Master {
                                 + " ainda funciona...");
 
                         long t = System.nanoTime() / 1000000000;
-                        long diff = t - attacksInfo.get(localAttackId).get(localSlaveKey).getTempo();
-                        System.out.println("tempo recente: " + t);
-                        System.out.println("tempo antigo: " + attacksInfo.get(localAttackId).get(localSlaveKey).getTempo());
-                        if (diff > 20 && !attacksInfo.get(localAttackId).get(localSlaveKey).isTerminou()) {
-                            System.out.println("diff " + diff);
-                            redividirIndices(localAttackId, localSlaveKey, ciphertext, knowntext);
+                        long diff = t - attacksInfo.get(localAttackId).get(localSlaveKey).getTime();
+                        if (diff > 20 && !attacksInfo.get(localAttackId).get(localSlaveKey).isEnded()) {
+                            redivideIndex(localAttackId, localSlaveKey, ciphertext, knowntext);
 
                             timers.get(localSlaveKey).cancel();
                         } else {
                             System.err.println("Escravo funcionando");
                         }
                     } catch (RemoteException er) {
-
-                        System.out.println("erro: " + er);
-                        System.out.println("attackid 2: " + localAttackId);
                         try {
-                            redividirIndices(localAttackId, localSlaveKey, ciphertext, knowntext);
+                            redivideIndex(localAttackId, localSlaveKey, ciphertext, knowntext);
                         } catch (RemoteException ex) {
                             Logger.getLogger(MasterImpl.class.getName()).log(Level.SEVERE, null, ex);
                         }
@@ -358,17 +372,17 @@ public class MasterImpl implements Master {
                     20000);
 
             timers.put(currentSlaveKey, timer);
-            System.out.println("attackid " + attackId);
-            attacksInfo.get(attackId).get(entry.getKey()).setInicio_Index(currentIndex);
-            attacksInfo.get(attackId).get(entry.getKey()).setCorrente_Index(currentIndex);
+
+            attacksInfo.get(attackId).get(entry.getKey()).setInitialIndex(currentIndex);
+            attacksInfo.get(attackId).get(entry.getKey()).setCurrentIndex(currentIndex);
 
             if (entries.hasNext()) {
-                attacksInfo.get(attackId).get(entry.getKey()).setFinal_Index(currentIndex + amountPerSlave + 1);
+                attacksInfo.get(attackId).get(entry.getKey()).setFinalIndex(currentIndex + amountPerSlave + 1);
 
                 slave.startSubAttack(ciphertext, knowntext, currentIndex,
                         currentIndex + amountPerSlave, attackId, this);
             } else {
-                attacksInfo.get(attackId).get(entry.getKey()).setFinal_Index(currentIndex + amountPerSlave + residualAmount);
+                attacksInfo.get(attackId).get(entry.getKey()).setFinalIndex(currentIndex + amountPerSlave + residualAmount);
 
                 slave.startSubAttack(ciphertext, knowntext, currentIndex,
                         currentIndex + amountPerSlave + residualAmount - 1,
@@ -378,7 +392,6 @@ public class MasterImpl implements Master {
             }
 
             currentIndex += amountPerSlave;
-            System.out.println("CURRENT INDEX: " + currentIndex);
         }
 
         List<Guess> Lguesses = new ArrayList<>();
@@ -388,10 +401,10 @@ public class MasterImpl implements Master {
             PRA SABER QUANDO ELES TERMINARAM ACHO QUE PODE CRIAR UMA LISTA BOOLEANA
             DIZENDO SE ELES TERMINARAM OU NÃO.
          */
-        synchronized (attacksInfo) {
+        synchronized (attacksInfo.get(attackId)) {
             try {
                 System.out.println("attack synchronized: " + (currentAttackId - 1));
-                attacksInfo.wait();
+                attacksInfo.get(attackId).wait();
             } catch (InterruptedException ex) {
                 Logger.getLogger(MasterImpl.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -406,7 +419,7 @@ public class MasterImpl implements Master {
         }
 
         System.out.println("Ataque terminado!");
-        return mapToArray(guesses);
+        return listToArray(guesses.get(attackId));
     }
 
     public static void main(String[] args) {

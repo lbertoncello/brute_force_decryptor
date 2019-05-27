@@ -22,11 +22,10 @@ import java.util.logging.Logger;
 
 /**
  *
- * @author lucas
- * Classe responsável por mandar o mestre iniciar o ataque.
+ * @author lucas Classe responsável por mandar o mestre iniciar o ataque.
  */
 public class ApplicationManager {
-    
+
     public static void saveFile(String filename, byte[] data) throws FileNotFoundException, IOException {
         FileOutputStream out = new FileOutputStream(filename);
         out.write(data);
@@ -36,17 +35,17 @@ public class ApplicationManager {
     public static void main(String[] args) throws NoSuchAlgorithmException {
         String host = (args.length < 1) ? null : args[0];
         //System.setProperty( "java.rmi.server.hostname", "192.168.0.0");
-        if(Files.exists(Paths.get("teste.txt"))) { 
+        if (Files.exists(Paths.get("teste.txt"))) {
             System.out.println("Arquivo existe");
             try {
-                
+
                 Registry registry = LocateRegistry.getRegistry("localhost");
                 Master master = (Master) registry.lookup("Mestre");
 
                 Guess[] guesses = master.attack("teste.txt.cipher".getBytes(), "ipsum".getBytes());
 
                 System.out.println("------------------------Guesses------------------------");
-                for(Guess guess : guesses) {
+                for (Guess guess : guesses) {
                     System.out.println("Guess: " + guess.getKey());
                 }
                 System.out.println("-------------------------------------------------------");
@@ -54,27 +53,22 @@ public class ApplicationManager {
                 System.err.println("Master exception: " + e.toString());
                 e.printStackTrace();
             }
-        
-        }
-       else
-        {
+
+        } else {
             int len;
-            
-            if(args.length > 3)
-                {
-                    len = Integer.parseInt(args[3]);
-                }
-            else
-            {
+
+            if (args.length > 3) {
+                len = Integer.parseInt(args[3]);
+            } else {
                 len = (int) (Math.random() * (100000 - 1000)) + 1000;
             }
-            
+
             System.out.println("Arquivo não existe");
             byte[] bytes = new byte[20];
             SecureRandom.getInstanceStrong().nextBytes(bytes);
-            
+
             try {
-                saveFile("t.txtcipher",bytes);
+                saveFile("t.txtcipher", bytes);
                 System.out.println("criou arquivo");
             } catch (IOException ex) {
                 Logger.getLogger(ApplicationManager.class.getName()).log(Level.SEVERE, null, ex);

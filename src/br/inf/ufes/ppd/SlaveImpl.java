@@ -19,8 +19,10 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Timer;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -35,7 +37,7 @@ public class SlaveImpl implements Slave {
 
     private UUID id = java.util.UUID.randomUUID();
 
-    private long currentIndex;
+    private Map<Integer, Integer> currentIndex = new ConcurrentHashMap<>();
 
     public void setId(UUID id) {
         this.id = id;
@@ -71,11 +73,11 @@ public class SlaveImpl implements Slave {
         return dictionary;
     }
 
-        private byte[] readDecryptedTextAsBytes(String filename) {
+    private byte[] readDecryptedTextAsBytes(String filename) {
 
         Path fileLocation = Paths.get(filename);
         byte[] data = null;
-        
+
         try {
             data = Files.readAllBytes(fileLocation);
         } catch (IOException ex) {
@@ -127,13 +129,13 @@ public class SlaveImpl implements Slave {
         file.delete();
     }
 
-
     @Override
     public void startSubAttack(byte[] ciphertext, byte[] knowntext,
             long initialwordindex, long finalwordindex, int attackNumber,
             SlaveManager callbackinterface) throws RemoteException {
 
         List<String> dictionary = readDictionary(dicFilename);
+        currentIndex.put(attackNumber, (int) initialwordindex);
 
         Thread thread = new Thread() {
             public void run() {
@@ -145,7 +147,7 @@ public class SlaveImpl implements Slave {
                     public void run() {
                         System.err.println("Tentando enviar o checkpoint...");
                         try {
-                            callbackinterface.checkpoint(id, attackNumber, currentIndex);
+                            callbackinterface.checkpoint(id, attackNumber, currentIndex.get(attackNumber));
 
                             System.err.println("Checkpoint enviado com sucesso!");
                         } catch (RemoteException e) {
@@ -154,12 +156,13 @@ public class SlaveImpl implements Slave {
                             e.printStackTrace();
                         }
                     }
-                },      
+                },
                         10000,
                         10000);
-
-                for (currentIndex = initialwordindex; currentIndex <= finalwordindex; currentIndex++) {
-                    String key = dictionary.get((int) currentIndex);
+                
+                for (long index = initialwordindex; index <= finalwordindex; index++) {
+                    currentIndex.put(attackNumber, (int) index);
+                    String key = dictionary.get((int) index);
 
                     if (key.length() < 3) {
                         continue;
@@ -182,7 +185,7 @@ public class SlaveImpl implements Slave {
 
                         try {
                             System.out.println("callback");
-                            callbackinterface.foundGuess(id, attackNumber, currentIndex, guess);
+                            callbackinterface.foundGuess(id, attackNumber, currentIndex.get(attackNumber), guess);
                             System.out.println("passou");
                         } catch (RemoteException ex) {
                             System.out.println("Deu ruim");
@@ -190,16 +193,18 @@ public class SlaveImpl implements Slave {
                         }
                     }
                 }
+                
+                currentIndex.put(attackNumber, currentIndex.get(attackNumber) + 1);
 
                 try {
-                    callbackinterface.checkpoint(id, attackNumber, currentIndex);
+                    callbackinterface.checkpoint(id, attackNumber, currentIndex.get(attackNumber));
                 } catch (RemoteException ex) {
                     Logger.getLogger(SlaveImpl.class.getName()).log(Level.SEVERE, null, ex);
                 }
 
                 timer.cancel();
                 System.out.println("Fim do subtaque do escravo " + id);
-                
+
             }
 
         };
@@ -243,8 +248,8 @@ public class SlaveImpl implements Slave {
                     }
                 }
             },
-                30000,    
-                30000);
+                    30000,
+                    30000);
 
         } catch (Exception e) {
             System.err.println("Slave exception: " + e.toString());

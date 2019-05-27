@@ -12,42 +12,41 @@ import java.util.UUID;
  * @author natanael
  */
 public class SlaveInfo {
-    private long tempo;
+
+    private long time;
     private UUID id;
-    private int inicio_Index;
-    private int final_Index;
-    private int corrente_Index;
+    private int initialIndex;
+    private int finalIndex;
+    private int currentIndex;
     private String nome;
     private Slave slaveReference;
-    private boolean terminou;
+    private boolean ended;
 
-    public boolean isTerminou() {
-        return terminou;
+    public boolean isEnded() {
+        return ended;
     }
 
-    public void setTerminou(boolean terminou) {
-        this.terminou = terminou;
+    public void setEnded(boolean ended) {
+        this.ended = ended;
     }
 
     public SlaveInfo(UUID id, String nome, Slave slaveReference) {
         this.id = id;
         this.nome = nome;
         this.slaveReference = slaveReference;
-        this.inicio_Index = 0;
-        this.final_Index = 0;
-        this.corrente_Index = 0;
-        this.terminou = false;
-        
-    }
-    
-    
+        this.initialIndex = 0;
+        this.finalIndex = 0;
+        this.currentIndex = 0;
+        this.ended = false;
 
-    public long getTempo() {
-        return tempo;
     }
 
-    public void setTempo(long tempo) {
-        this.tempo = tempo;
+    public long getTime() {
+        return time;
+    }
+
+    public void setTime(long time) {
+        this.time = time;
     }
 
     public UUID getId() {
@@ -58,28 +57,28 @@ public class SlaveInfo {
         this.id = id;
     }
 
-    public int getInicio_Index() {
-        return inicio_Index;
+    public int getInitialIndex() {
+        return initialIndex;
     }
 
-    public void setInicio_Index(int inicio_Index) {
-        this.inicio_Index = inicio_Index;
+    public void setInitialIndex(int inicio_Index) {
+        this.initialIndex = inicio_Index;
     }
 
-    public int getFinal_Index() {
-        return final_Index;
+    public int getFinalIndex() {
+        return finalIndex;
     }
 
-    public void setFinal_Index(int final_Index) {
-        this.final_Index = final_Index;
+    public void setFinalIndex(int final_Index) {
+        this.finalIndex = final_Index;
     }
 
-    public int getCorrente_Index() {
-        return corrente_Index;
+    public int getCurrentIndex() {
+        return currentIndex;
     }
 
-    public void setCorrente_Index(int corrente_Index) {
-        this.corrente_Index = corrente_Index;
+    public void setCurrentIndex(int corrente_Index) {
+        this.currentIndex = corrente_Index;
     }
 
     public String getNome() {
@@ -89,7 +88,5 @@ public class SlaveInfo {
     public void setNome(String nome) {
         this.nome = nome;
     }
-    
-    
-    
+
 }

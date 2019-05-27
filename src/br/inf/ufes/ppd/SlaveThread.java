@@ -39,7 +39,7 @@ public class SlaveThread implements Runnable {
     public void run() {
         try {
             slave.startSubAttack(ciphertext, knowntext, initialwordindex, finalwordindex, attackNumber, callbackinterface);
-            si.setTerminou(true);
+            si.setEnded(true);
         } catch (RemoteException ex) {
             Logger.getLogger(SlaveThread.class.getName()).log(Level.SEVERE, null, ex);
         }
