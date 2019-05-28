@@ -204,9 +204,9 @@ public class TrabUtils {
 		return false;
 	}
         
-        public static void Resultados(String arq, int tam, long time, String tipo) throws IOException {
+        public static void Resultados(String arq, int tam, long time) throws IOException {
 		BufferedWriter buffWrite = new BufferedWriter(new FileWriter(arq, true));
-        buffWrite.append(tam + "," + time + "," + tipo + System.getProperty("line.separator"));
+        buffWrite.append(tam + "," + time + System.getProperty("line.separator"));
         buffWrite.close();
 	}
 

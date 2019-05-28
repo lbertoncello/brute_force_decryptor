@@ -32,7 +32,7 @@ import java.util.logging.Logger;
 public class SlaveImpl implements Slave {
 
     private final String dicFilename = "dictionary.txt";
-    private final String docFilename = "IMG_0804.JPG.cipher";
+    //private final String docFilename = "IMG_0804.JPG.cipher";
     
     List<String> dictionary = readDictionary(dicFilename);
 

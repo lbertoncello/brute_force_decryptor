@@ -24,27 +24,27 @@ public class Cliente {
 
 	byte[] ciphertext = null;
         String hostname = args[0];
+        String fileName = args[1];
+        byte[] knowText;
         System.out.println("Cliente");
         //String hostname = "localhost";
         byte[] key = null;
-        byte[] palavra;
 		
-        System.out.println("nome arquivo: "+args[1]);
-        if(Files.exists(Paths.get(args[1]))) { 
-            
-            System.out.println(args[1]);
+        System.out.println("nome arquivo: "+fileName);
+        if(Files.exists(Paths.get(fileName))) { 
+      
             System.out.println("Arquivo existe");
             
-            ciphertext = TrabUtils.readFile(args[1]);
+            ciphertext = TrabUtils.readFile(fileName);
                 //Palavra conhecida
-            palavra = args[2].getBytes();
+            knowText = args[2].getBytes();
 
         }
         else
         {
             
             System.out.println("Arquivo não existe");
-            byte[] knowText;
+         
             int len;
             
             if(args.length > 3)
@@ -63,7 +63,7 @@ public class Cliente {
 		
             System.out.println("Arquivo criado");
 			//extraindo somente 8 bytes de informação
-	    palavra = TrabUtils.extractKnowText(ciphertext, 8);
+	    knowText = TrabUtils.extractKnowText(ciphertext, 8);
 								
 	    key = TrabUtils.sortKey().getBytes();
 
@@ -78,7 +78,7 @@ public class Cliente {
                 Registry registry = LocateRegistry.getRegistry(hostname);
                 Master master = (Master) registry.lookup("Mestre");
                 String name = args[1];
-                Guess[] guesses = master.attack(name.getBytes(), palavra);
+                Guess[] guesses = master.attack(name.getBytes(), knowText);
                
                 System.out.println("------------------------Guesses------------------------");
                 for (Guess guess : guesses) {

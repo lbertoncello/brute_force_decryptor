@@ -202,24 +202,18 @@ public class MasterImpl implements Master {
     /*
     private boolean checkToNotify() {
         Iterator attacks = attacksInfo.entrySet().iterator();
-
         while (attacks.hasNext()) {
             Map.Entry attack = (Map.Entry) attacks.next();
             int attackId = (Integer) attack.getKey();
-
             Iterator entr = slaves.entrySet().iterator();
-
             while (entr.hasNext()) {
                 Map.Entry entry = (Map.Entry) entr.next();
                 UUID idd = (UUID) entry.getKey();
-
                 if (!attacksInfo.get(attackId).get(idd).isTerminou()) {
                     return false;
                 }
-
             }
         }
-
         return true;
     }
      */
