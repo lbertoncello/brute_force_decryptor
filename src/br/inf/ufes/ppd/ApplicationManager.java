@@ -1,5 +1,3 @@
-
-  
 /*
  * To change this license header, choose License Headers in Project Properties.
  * To change this template file, choose Tools | Templates
@@ -7,10 +5,14 @@
  */
 package br.inf.ufes.ppd;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -31,19 +33,41 @@ public class ApplicationManager {
         out.close();
     }
 
+    private static byte[] readDecryptedTextAsBytes(String filename) throws IOException {
+
+        File file = new File(filename);
+        InputStream is = new FileInputStream(file);
+        long length = file.length();
+
+        //creates array (assumes file length<Integer.MAX_VALUE)
+        byte[] data = new byte[(int) length];
+
+        int offset = 0;
+        int count = 0;
+
+        while ((offset < data.length) && (count = is.read(data, offset, data.length - offset)) >= 0) {
+            offset += count;
+        }
+        is.close();
+        return data;
+    }
+
     public static void main(String[] args) throws NoSuchAlgorithmException {
         String host = (args.length < 1) ? null : args[0];
         //System.setProperty( "java.rmi.server.hostname", "192.168.0.0");
-        if (Files.exists(Paths.get("../analise_cliente.csv"))) {
+        String decryptedFilename = "teste.txt.cipher";
+        byte[] knowText = "ipsum".getBytes();
+
+        if (Files.exists(Paths.get(decryptedFilename))) {
             System.out.println("Arquivo existe");
             try {
 
                 Registry registry = LocateRegistry.getRegistry("localhost");
                 Master master = (Master) registry.lookup("Mestre");
+                byte[] ciphertext = readDecryptedTextAsBytes(decryptedFilename);
 
-                Guess[] guesses = master.attack("IMG_0804.JPG.cipher".getBytes(), "ipsum".getBytes());
-                
-                System.out.println("tamanho guess "+guesses.length);
+                Guess[] guesses = master.attack(ciphertext, knowText);
+
                 System.out.println("------------------------Guesses------------------------");
                 for (Guess guess : guesses) {
                     System.out.println("Guess: " + guess.getKey());
@@ -76,4 +100,3 @@ public class ApplicationManager {
         }
     }
 }
-

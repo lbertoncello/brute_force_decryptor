@@ -33,6 +33,8 @@ public class SlaveImpl implements Slave {
 
     private final String dicFilename = "dictionary.txt";
     private final String docFilename = "IMG_0804.JPG.cipher";
+    
+    List<String> dictionary = readDictionary(dicFilename);
 
     private UUID id = java.util.UUID.randomUUID();
 
@@ -58,7 +60,7 @@ public class SlaveImpl implements Slave {
 // de repetição atingir o final do arquivo texto
 
             while (line != null) {
-                dictionary.add(line);
+                dictionary.add(line.replace("\n", "").replace(" ", ""));
 
                 line = readFile.readLine(); // lê da segunda até a última linha
             }
@@ -103,7 +105,7 @@ public class SlaveImpl implements Slave {
 
     //Verifica se o knowtext está na mensagem descriptografada
     private boolean checkDecryptedText(String textFilename, byte[] knowntext) {
-        if (checkFileExists(textFilename)) {
+        if (checkFileExists(textFilename)) {         
             byte[] decryptedText = readDecryptedTextAsBytes(textFilename);
             if (compareBytes(decryptedText, knowntext)) {
                 return true;
@@ -133,7 +135,6 @@ public class SlaveImpl implements Slave {
             long initialwordindex, long finalwordindex, int attackNumber,
             SlaveManager callbackinterface) throws RemoteException {
 
-        List<String> dictionary = readDictionary(dicFilename);
         currentIndex.put(attackNumber, (int) initialwordindex);
 
         Thread thread = new Thread() {
@@ -158,7 +159,7 @@ public class SlaveImpl implements Slave {
                 },
                         10000,
                         10000);
-                
+
                 for (long index = initialwordindex; index <= finalwordindex; index++) {
                     currentIndex.put(attackNumber, (int) index);
                     String key = dictionary.get((int) index);
@@ -167,13 +168,12 @@ public class SlaveImpl implements Slave {
                         continue;
                     }
 
-                    String[] args = new String[2];
-                    args[0] = key;
-                    args[1] = docFilename;
+                    Decrypt decrypt = new Decrypt();
+                    decrypt.decrypt(key, ciphertext);
 
-                    Decrypt.main(args);
-                    System.out.println("key "+key);
+                    System.out.println("key " + key);
                     String decryptedFilename = key + ".msg";
+
 
                     if (checkDecryptedText(decryptedFilename, knowntext)) {
                         System.out.println("Decrypted filename: " + decryptedFilename);
@@ -192,7 +192,7 @@ public class SlaveImpl implements Slave {
                         }
                     }
                 }
-                
+
                 currentIndex.put(attackNumber, currentIndex.get(attackNumber) + 1);
 
                 try {

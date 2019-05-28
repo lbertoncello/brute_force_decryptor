@@ -165,7 +165,6 @@ public class MasterImpl implements Master {
             attacksInfo.get(attackNumber).get(slaveKey).setCurrentIndex((int) currentindex);
         } catch (Exception er) {
             System.out.println(er);
-            System.out.println("DEu merda");
         }
 
     }
@@ -182,7 +181,6 @@ public class MasterImpl implements Master {
             attacksInfo.get(attackNumber).get(slaveKey).setEnded(true);
             System.out.println("Último checkpoint!");
             System.out.println("Escravo " + attacksInfo.get(attackNumber).get(slaveKey).getNome() + " terminou");
-            System.out.println("ORIGINAL ID: " + relatedAttacks.get(attackNumber).get(0));
             if (this.checkToNotify(attackNumber)) {
                 int originalAttackId = relatedAttacks.get(attackNumber).get(0);
                 synchronized (attacksInfo.get(originalAttackId)) {
@@ -398,7 +396,6 @@ public class MasterImpl implements Master {
          */
         synchronized (attacksInfo.get(attackId)) {
             try {
-                System.out.println("attack synchronized: " + (currentAttackId - 1));
                 attacksInfo.get(attackId).wait();
             } catch (InterruptedException ex) {
                 Logger.getLogger(MasterImpl.class.getName()).log(Level.SEVERE, null, ex);
