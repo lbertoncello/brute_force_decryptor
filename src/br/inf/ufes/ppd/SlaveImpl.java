@@ -17,7 +17,6 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Timer;
@@ -33,7 +32,7 @@ import java.util.logging.Logger;
 public class SlaveImpl implements Slave {
 
     private final String dicFilename = "dictionary.txt";
-    private final String docFilename = "teste.txt.cipher";
+    private final String docFilename = "IMG_0804.JPG.cipher";
 
     private UUID id = java.util.UUID.randomUUID();
 
@@ -173,7 +172,7 @@ public class SlaveImpl implements Slave {
                     args[1] = docFilename;
 
                     Decrypt.main(args);
-
+                    System.out.println("key "+key);
                     String decryptedFilename = key + ".msg";
 
                     if (checkDecryptedText(decryptedFilename, knowntext)) {

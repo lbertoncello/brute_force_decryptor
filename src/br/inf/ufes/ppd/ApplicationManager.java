@@ -1,3 +1,5 @@
+
+  
 /*
  * To change this license header, choose License Headers in Project Properties.
  * To change this template file, choose Tools | Templates
@@ -10,13 +12,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
-import java.rmi.server.UnicastRemoteObject;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -35,15 +34,16 @@ public class ApplicationManager {
     public static void main(String[] args) throws NoSuchAlgorithmException {
         String host = (args.length < 1) ? null : args[0];
         //System.setProperty( "java.rmi.server.hostname", "192.168.0.0");
-        if (Files.exists(Paths.get("teste.txt"))) {
+        if (Files.exists(Paths.get("../analise_cliente.csv"))) {
             System.out.println("Arquivo existe");
             try {
 
                 Registry registry = LocateRegistry.getRegistry("localhost");
                 Master master = (Master) registry.lookup("Mestre");
 
-                Guess[] guesses = master.attack("teste.txt.cipher".getBytes(), "ipsum".getBytes());
-
+                Guess[] guesses = master.attack("IMG_0804.JPG.cipher".getBytes(), "ipsum".getBytes());
+                
+                System.out.println("tamanho guess "+guesses.length);
                 System.out.println("------------------------Guesses------------------------");
                 for (Guess guess : guesses) {
                     System.out.println("Guess: " + guess.getKey());
@@ -76,3 +76,4 @@ public class ApplicationManager {
         }
     }
 }
+
