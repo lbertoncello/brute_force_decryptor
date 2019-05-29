@@ -21,13 +21,13 @@ public class ClienteTestes {
          */
 
         String host, fileName, key;
+        host = args[0];
         byte[] knowText;
         byte[] texto = null;
         int qtdTestes = 0, tamTexto;
         byte[] crypt;
         fileName = args[1];
         if (Files.exists(Paths.get(fileName))) {
-            host = args[0];
             knowText = args[2].getBytes();
             qtdTestes = Integer.parseInt(args[3]);
             texto = TrabUtils.readFile(fileName);
@@ -61,7 +61,7 @@ public class ClienteTestes {
         System.out.println("\nTudo pronto, iniciando conexão com o servidor mestre..");
 
         try {
-            Registry registry = LocateRegistry.getRegistry();
+            Registry registry = LocateRegistry.getRegistry(host);
             Master master = (Master) registry.lookup("Mestre");
 
             System.out.println("Envio dos dados feito de forma sequencial..");

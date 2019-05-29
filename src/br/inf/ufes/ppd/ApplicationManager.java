@@ -52,7 +52,7 @@ public class ApplicationManager {
     }
 
     public static void main(String[] args) throws NoSuchAlgorithmException {
-        String host = (args.length < 1) ? null : args[0];
+        String host = (args.length < 1) ? "localhost" : args[0];
         //System.setProperty( "java.rmi.server.hostname", "192.168.0.0");
         String decryptedFilename = "50kb.txt.cipher";
         byte[] knowText = "ipsum".getBytes();
@@ -61,7 +61,7 @@ public class ApplicationManager {
             System.out.println("Arquivo existe");
             try {
 
-                Registry registry = LocateRegistry.getRegistry("localhost");
+                Registry registry = LocateRegistry.getRegistry(host);
                 Master master = (Master) registry.lookup("Mestre");
                 byte[] ciphertext = readDecryptedTextAsBytes(decryptedFilename);
 
