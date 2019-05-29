@@ -288,6 +288,8 @@ public class MasterImpl implements Master {
     @Override
     public Guess[] attack(byte[] ciphertext, byte[] knowntext)
             throws RemoteException {
+        
+        System.out.println("Iniciando ataque!");
 
         int numberOfSlaves = slaves.size();
         List<String> dictionary = readDictionary(filename);
