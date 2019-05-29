@@ -219,7 +219,7 @@ public class SlaveImpl implements Slave {
         try {
             //System.setProperty( "java.rmi.server.hostname", "192.168.0.0");
             Registry registry = LocateRegistry.getRegistry(host);
-            Master master = (Master) registry.lookup("Mestre");
+            Master master = (Master) registry.lookup("mestre");
 
             UUID id = java.util.UUID.randomUUID();
             String name = "Escravo " + id;

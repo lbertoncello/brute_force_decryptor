@@ -413,7 +413,7 @@ public class MasterImpl implements Master {
             Registry registry = LocateRegistry.getRegistry("localhost");
             System.err.println("Server bindind");
 
-            registry.rebind("Mestre", objref);
+            registry.rebind("mestre", objref);
             System.err.println("Server ready");
         } catch (Exception e) {
             System.err.println("Master exception: " + e.toString());
