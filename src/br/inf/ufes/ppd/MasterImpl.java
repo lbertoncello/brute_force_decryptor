@@ -270,11 +270,11 @@ public class MasterImpl implements Master {
                 Slave slave = (Slave) entry.getValue();
 
                 if (entries.hasNext()) {
-                    attacksInfo.get(attacksInfo.size() - 1).get(entry.getKey()).setFinalIndex(initialIndex + amountPerSlave + 1);
+                    attacksInfo.get(attacksInfo.size() - 1).get(entry.getKey()).setFinalIndex(initialIndex + amountPerSlave - 1);
                     slave.startSubAttack(ciphertext, knowntext, initialIndex,
-                            initialIndex + amountPerSlave, attackId, this);
+                            initialIndex + amountPerSlave - 1, attackId, this);
                 } else {
-                    attacksInfo.get(attacksInfo.size() - 1).get(entry.getKey()).setFinalIndex(initialIndex + amountPerSlave + residualAmount);
+                    attacksInfo.get(attacksInfo.size() - 1).get(entry.getKey()).setFinalIndex(initialIndex + amountPerSlave + residualAmount - 1);
                     slave.startSubAttack(ciphertext, knowntext, initialIndex,
                             initialIndex + amountPerSlave + residualAmount - 1,
                             attackId, this);
@@ -361,12 +361,12 @@ public class MasterImpl implements Master {
             attacksInfo.get(attackId).get(entry.getKey()).setCurrentIndex(currentIndex);
 
             if (entries.hasNext()) {
-                attacksInfo.get(attackId).get(entry.getKey()).setFinalIndex(currentIndex + amountPerSlave + 1);
+                attacksInfo.get(attackId).get(entry.getKey()).setFinalIndex(currentIndex + amountPerSlave - 1);
 
                 slave.startSubAttack(ciphertext, knowntext, currentIndex,
-                        currentIndex + amountPerSlave, attackId, this);
+                        currentIndex + amountPerSlave - 1, attackId, this);
             } else {
-                attacksInfo.get(attackId).get(entry.getKey()).setFinalIndex(currentIndex + amountPerSlave + residualAmount);
+                attacksInfo.get(attackId).get(entry.getKey()).setFinalIndex(currentIndex + amountPerSlave + residualAmount - 1);
 
                 slave.startSubAttack(ciphertext, knowntext, currentIndex,
                         currentIndex + amountPerSlave + residualAmount - 1,

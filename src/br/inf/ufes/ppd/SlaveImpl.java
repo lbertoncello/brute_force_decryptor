@@ -165,10 +165,6 @@ public class SlaveImpl implements Slave {
                     currentIndex.put(attackNumber, (int) index);
                     String key = dictionary.get((int) index);
 
-                    if (key.length() < 3) {
-                        continue;
-                    }
-
                     if(!decrypt.decrypt(key, ciphertext)) {
                         continue;
                     }
@@ -195,7 +191,7 @@ public class SlaveImpl implements Slave {
                     }
                 }
 
-                currentIndex.put(attackNumber, currentIndex.get(attackNumber) + 1);
+                currentIndex.put(attackNumber, currentIndex.get(attackNumber) );
 
                 try {
                     callbackinterface.checkpoint(id, attackNumber, currentIndex.get(attackNumber));
@@ -222,7 +218,7 @@ public class SlaveImpl implements Slave {
             Master master = (Master) registry.lookup("mestre");
 
             UUID id = java.util.UUID.randomUUID();
-            String name = "Escravo " + id;
+            String name = (args.length < 2) ? "Escravo " + id : args[1];
 
             SlaveImpl obj = new SlaveImpl();
             obj.setId(id);

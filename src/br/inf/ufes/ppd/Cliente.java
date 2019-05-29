@@ -76,7 +76,7 @@ public class Cliente {
          try {
 
                 Registry registry = LocateRegistry.getRegistry(hostname);
-                Master master = (Master) registry.lookup("Mestre");
+                Master master = (Master) registry.lookup("mestre");
                 String name = args[1];
                 Guess[] guesses = master.attack(name.getBytes(), knowText);
                

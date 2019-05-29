@@ -62,7 +62,7 @@ public class ApplicationManager {
             try {
 
                 Registry registry = LocateRegistry.getRegistry(host);
-                Master master = (Master) registry.lookup("Mestre");
+                Master master = (Master) registry.lookup("mestre");
                 byte[] ciphertext = readDecryptedTextAsBytes(decryptedFilename);
 
                 Guess[] guesses = master.attack(ciphertext, knowText);
