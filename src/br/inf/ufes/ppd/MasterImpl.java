@@ -42,14 +42,9 @@ public class MasterImpl implements Master {
 
     private Guess[] listToArray(List<Guess> list) {
         Guess[] array = new Guess[list.size()];
-        int contador = 0;
+
         for (int i = 0; i < list.size(); i++) {
-
-            for (Guess e : list) {
-                array[contador] = e;
-                contador++;
-            }
-
+            array[i] = list.get(i);
         }
 
         return array;
@@ -239,7 +234,7 @@ public class MasterImpl implements Master {
     private synchronized void redivideIndex(int attackId, UUID key, byte[] ciphertext, byte[] knowntext) throws RemoteException {
         System.err.println("O escravo " + attacksInfo.get(attackId).get(key).getNome() + " falhou!");
         System.err.println("Redividindo ataque...");
-        
+
         int initialIndex = attacksInfo.get(attackId).get(key).getCurrentIndex() + 1;
         int finalIndex = attacksInfo.get(attackId).get(key).getFinalIndex();
 

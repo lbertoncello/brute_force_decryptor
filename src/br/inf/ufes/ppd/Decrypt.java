@@ -67,7 +67,7 @@ public class Decrypt {
         }
     }
 
-    public void decrypt(String key, byte[] cyphertext) {
+    public boolean decrypt(String key, byte[] cyphertext) {
         try {
             byte[] byteKey = key.getBytes();
             SecretKeySpec keySpec = new SecretKeySpec(byteKey, "Blowfish");
@@ -81,14 +81,17 @@ public class Decrypt {
 
             saveFile(key + ".msg", decrypted);
 
+            return true;
         } catch (javax.crypto.BadPaddingException e) {
             // essa excecao e jogada quando a senha esta incorreta
             // porem nao quer dizer que a senha esta correta se nao jogar essa excecao
             System.out.println("Senha invalida.");
+            return false;
 
         } catch (Exception e) {
             //dont try this at home
             e.printStackTrace();
+            return false;
         }
     }
 

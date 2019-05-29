@@ -71,7 +71,7 @@ public class TesteOverhead implements Slave{
 		}
 		
 		findServer = false;
-		
+		/*
 		while(run && (tryConnect < 10)) {		
 			try {
 				if(!findServer) {
@@ -122,7 +122,7 @@ public class TesteOverhead implements Slave{
 				run = false;
 			}
 		}
-		
+		*/
 	
 		if(master != null) {
 			try {

@@ -139,6 +139,7 @@ public class SlaveImpl implements Slave {
 
         Thread thread = new Thread() {
             public void run() {
+                Decrypt decrypt = new Decrypt();
                 Timer timer = new Timer();
 
                 //Envia um checkpoint a cada 10 segundos
@@ -168,8 +169,9 @@ public class SlaveImpl implements Slave {
                         continue;
                     }
 
-                    Decrypt decrypt = new Decrypt();
-                    decrypt.decrypt(key, ciphertext);
+                    if(!decrypt.decrypt(key, ciphertext)) {
+                        continue;
+                    }
 
                     System.out.println("key " + key);
                     String decryptedFilename = key + ".msg";

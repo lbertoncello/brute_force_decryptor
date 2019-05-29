@@ -54,7 +54,7 @@ public class ApplicationManager {
     public static void main(String[] args) throws NoSuchAlgorithmException {
         String host = (args.length < 1) ? null : args[0];
         //System.setProperty( "java.rmi.server.hostname", "192.168.0.0");
-        String decryptedFilename = "teste.txt.cipher";
+        String decryptedFilename = "50kb.txt.cipher";
         byte[] knowText = "ipsum".getBytes();
 
         if (Files.exists(Paths.get(decryptedFilename))) {
