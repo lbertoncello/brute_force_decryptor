@@ -1,4 +1,5 @@
 package br.inf.ufes.ppd;
+import java.io.IOException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -6,6 +7,8 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.List;
 import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 
@@ -13,6 +16,11 @@ public class TesteOverhead implements Slave{
 	static UUID id;
         static Slave objref;
 	static String name;
+        static Master master;
+        static List<String> dic;
+        static TesteOverhead obj;
+        static Boolean findServer;
+	static	String pathDictionary;
         
         /***
 	 * Procura pelo mestre usando o host fornecido e o ID de identificação de registro junto ao Registry.
@@ -33,28 +41,27 @@ public class TesteOverhead implements Slave{
 	}
         
         
-	public static void main(String[] args) {
+	public static void main(String[] args) throws RemoteException, NotBoundException {
 		
 		/***
 		 * Argumentos que devem ser fornecidos
-		 * args[0] - Endereço IP de onde o Registry está 	- Obrigatório
-		 * args[1] - Local do dicionário de chaves			- Obrigatório
-		 * args[2] - Nome utilizado pelo escravo			- Opcional
+		 * args[0] - Endereço IP de onde o Registry está 	
 		 */
 		
-                Master master = null;
-                objref = null;
-                List<String> dic;
-                TesteOverhead obj;
-                Boolean findServer;
-		String pathDictionary;	
+                	
 		boolean run = true;
 		int tryConnect = 0;
 		Registry registry;
 				
 		id = java.util.UUID.randomUUID();
                 name = "Escravo " + id;
-		String host = args[0];
+		String host = "localhost";
+                byte[] ciphertext = null;
+            try {
+                ciphertext = TrabUtils.readFile("teste.txt.cipher");
+            } catch (IOException ex) {
+                Logger.getLogger(TesteOverhead.class.getName()).log(Level.SEVERE, null, ex);
+            }
 		
                 dic = TrabUtils.readDictionary("dictionary.txt");
 				
@@ -70,74 +77,31 @@ public class TesteOverhead implements Slave{
 			e2.printStackTrace();
 		}
 		
-		findServer = false;
-		/*
-		while(run && (tryConnect < 10)) {		
-			try {
-				if(!findServer) {
-					System.out.println("Localizando Servidor Mestre..");
+
+		System.out.println("Localizando Servidor Mestre..");
 					
-					registry = LocateRegistry.getRegistry(host);
-					master = (Master) registry.lookup("mestre");
+		registry = LocateRegistry.getRegistry(host);
+		master = (Master) registry.lookup("Mestre");
 						
-					System.out.println("Registrando Interface no Mestre...");
-					master.addSlave(objref, name,id);
-
-					findServer = true;
-				}else {
-					new Thread() {
-						public void run() {
-							try {
-								master.addSlave(objref, name, id);
-								System.err.println("Re-registro feito com sucesso!");
-							} catch (RemoteException e) {
-								synchronized (findServer) {
-									findServer = false;
-								}
-							}
-						}
-					}.start();
-				}
-				
-			}catch (NullPointerException eNull) {
-				System.out.println("Referência nula para o mestre. Finalizando " + name);
-				run = false;
-			}catch (RemoteException eRemote) {
-				System.out.print("Servidor mestre Offline. ");
-				System.out.println("Tentativa de Conexão (" + (++tryConnect) + " / " + 10 + ")");
-				synchronized (findServer) {
-					findServer = false;
-				}
-			} catch (NotBoundException eNotBound) {
-				System.out.println("O serviço  mestre não está disponível pelo servidor mestre.");
-				System.out.println("Tentativa de Conexão (" + (++tryConnect) + " / " + 10+ ")");
-				synchronized (findServer) {
-					findServer = true;
-				}
-			} 
+		System.out.println("Registrando Interface no Mestre...");
+            try {
+                master.addSlave(objref, name,id);
+            } catch (RemoteException ex) {
+                Logger.getLogger(TesteOverhead.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            
+            double t1 = System.nanoTime()/1_000_000_000;
+            objref.startSubAttack(ciphertext,"ipsum".getBytes(), 0,10,0, master);
+            double t2  = System.nanoTime()/1_000_000_000 - t1;
+            
+            System.out.println("overhead: "+t2);
+            
+            
+                
+    }
+		
 			
-			try {
-				Thread.sleep(30000);
-			} catch (InterruptedException e) {
-				run = false;
-			}
-		}
-		*/
 	
-		if(master != null) {
-			try {
-				System.out.println("Solicitando remoção ao Mestre.");
-				master.removeSlave(id);
-				System.out.println("Removido do servidor com sucesso.");
-				run = false;
-			} catch (RemoteException e1) {
-				System.out.println("Falha na Conexão com o Mestre.");
-			}
-		}
-
-		System.out.println("Execução de " + name + " encerrada.");
-			
-	}
 	
 	
 }
