@@ -23,7 +23,7 @@ public class ClienteSeq {
 		List<Guess> listGuess = new ArrayList<>();
 
 		for(String key : dictionary) {
-			Guess g = isValidKey(cipherText, knowText, key.getBytes());
+			Guess g = isValidKey(cipherText, knowText, key);
 			if(g != null) {
 				listGuess.add(g);
 			}
@@ -32,14 +32,15 @@ public class ClienteSeq {
 		return listGuess;
 	}
     
-    public static Guess isValidKey(byte[] ciphertext, byte[] knowntext, byte[] key) {
+    public static Guess isValidKey(byte[] ciphertext, byte[] knowntext, String key) {
 		Guess guess = null;
 		try {
-			byte[] dec = TrabUtils.decrypt(key, ciphertext);
+			byte[] dec = TrabUtils.decrypt(key.getBytes(), ciphertext);
 			
 			if(TrabUtils.findBytes(dec, knowntext)) {
 				guess = new Guess();
-				guess.setKey(key.toString());
+                                TrabUtils.saveFile(key+ ".msg", dec);
+				guess.setKey(key);
 				guess.setMessage(dec);
 			}			
 					
@@ -56,8 +57,8 @@ public class ClienteSeq {
         byte[] palavra;
         List<String> Keys;
 	List<Guess> guesses;
-        long tempo1;
-        long tempo2;
+        double tempo1;
+        double tempo2;
       
 		
     
@@ -107,6 +108,7 @@ public class ClienteSeq {
 			tempo1 = System.nanoTime()/1_000_000_000;
 			guesses = attack(Keys, ciphertext,palavra);
 			tempo2 = System.nanoTime()/1_000_000_000 - tempo1;
+                        
 			
 			if(guesses.size() > 0) {
 				System.out.println("Foram encontradas " + guesses.size() + " possíveis chaves.");
