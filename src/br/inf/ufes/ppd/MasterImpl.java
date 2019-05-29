@@ -408,7 +408,7 @@ public class MasterImpl implements Master {
         try {
 
             MasterImpl obj = new MasterImpl();
-            Master objref = (Master) UnicastRemoteObject.exportObject(obj, 2000);
+            Master objref = (Master) UnicastRemoteObject.exportObject(obj, 0);
 
             Registry registry = LocateRegistry.getRegistry("localhost");
             System.err.println("Server bindind");
