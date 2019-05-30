@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Timer;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -26,7 +27,7 @@ import java.util.logging.Logger;
  *
  * @author lucas
  */
-public class MasterImpl implements Master {
+public class MasterDump implements Master {
 
     private final String filename = "dictionary.txt";
 
@@ -39,6 +40,8 @@ public class MasterImpl implements Master {
     //private Map<Integer, Slave> attacks = new ConcurrentHashMap<>();
     private Map<Integer, Map<UUID, SlaveInfo>> attacksInfo = new ConcurrentHashMap<>();
     private Map<Integer, List<Integer>> relatedAttacks = new ConcurrentHashMap<>();
+    //Informa se o ataque já terminou
+    private Map<Integer, Boolean> isAttackEnded = new ConcurrentHashMap<>();
 
     private Guess[] listToArray(List<Guess> list) {
         Guess[] array = new Guess[list.size()];
@@ -179,6 +182,10 @@ public class MasterImpl implements Master {
             if (this.checkToNotify(attackNumber)) {
                 int originalAttackId = relatedAttacks.get(attackNumber).get(0);
                 synchronized (attacksInfo.get(originalAttackId)) {
+                    synchronized (isAttackEnded.get(originalAttackId)) {
+                        isAttackEnded.put(originalAttackId, Boolean.TRUE);
+                    }
+
                     attacksInfo.get(originalAttackId).notify();
                 }
             }
@@ -251,7 +258,7 @@ public class MasterImpl implements Master {
         try {
             removeSlave(key);
         } catch (RemoteException ex) {
-            Logger.getLogger(MasterImpl.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(MasterDump.class.getName()).log(Level.SEVERE, null, ex);
         }
 
         if (initialIndex != finalIndex) {
@@ -302,6 +309,7 @@ public class MasterImpl implements Master {
         final int amountPerSlave = dictionary.size() / numberOfSlaves;
         final int residualAmount = dictionary.size() % numberOfSlaves;
         int currentIndex = 0;
+        isAttackEnded.put(attackId, Boolean.FALSE);
 
         Iterator entries = slaves.entrySet().iterator();
         while (entries.hasNext()) {
@@ -345,7 +353,7 @@ public class MasterImpl implements Master {
                         try {
                             redivideIndex(localAttackId, localSlaveKey, ciphertext, knowntext);
                         } catch (RemoteException ex) {
-                            Logger.getLogger(MasterImpl.class.getName()).log(Level.SEVERE, null, ex);
+                            Logger.getLogger(MasterDump.class.getName()).log(Level.SEVERE, null, ex);
                         }
                         timers.get(localSlaveKey).cancel();
 
@@ -385,14 +393,17 @@ public class MasterImpl implements Master {
             PRA SABER QUANDO ELES TERMINARAM ACHO QUE PODE CRIAR UMA LISTA BOOLEANA
             DIZENDO SE ELES TERMINARAM OU NÃO.
          */
-        synchronized (attacksInfo.get(attackId)) {
-            try {
-                attacksInfo.get(attackId).wait();
-            } catch (InterruptedException ex) {
-                Logger.getLogger(MasterImpl.class.getName()).log(Level.SEVERE, null, ex);
-            }
 
-        };
+        if (Objects.equals(isAttackEnded.get(attackId), Boolean.FALSE)) {
+            synchronized (attacksInfo.get(attackId)) {
+                try {
+                    attacksInfo.get(attackId).wait();
+                } catch (InterruptedException ex) {
+                    Logger.getLogger(MasterDump.class.getName()).log(Level.SEVERE, null, ex);
+                }
+
+            };
+        }
 
         entries = slaves.entrySet().iterator();
         while (entries.hasNext()) {
@@ -409,7 +420,7 @@ public class MasterImpl implements Master {
 
         try {
 
-            MasterImpl obj = new MasterImpl();
+            MasterDump obj = new MasterDump();
             Master objref = (Master) UnicastRemoteObject.exportObject(obj, 0);
 
             Registry registry = LocateRegistry.getRegistry("localhost");
