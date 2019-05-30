@@ -1,107 +1,94 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
 package br.inf.ufes.ppd;
-import java.io.IOException;
+
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
-import java.rmi.server.UnicastRemoteObject;
-import java.util.List;
-import java.util.UUID;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
+/**
+ *
+ * @author lucas
+ * Classe responsável por mandar o mestre iniciar o ataque.
+ */
+public class TesteOverhead {
+    
 
+    public static void main(String[] args) throws RemoteException, NotBoundException, Exception {
 
-public class TesteOverhead implements Slave{
-	static UUID id;
-        static Slave objref;
-	static String name;
-        static Master master;
-        static List<String> dic;
-        static TesteOverhead obj;
-        static Boolean findServer;
-	static	String pathDictionary;
-        
-        /***
-	 * Procura pelo mestre usando o host fornecido e o ID de identificação de registro junto ao Registry.
-	 * @throws RemoteException 
-	 * @throws NotBoundException 
-	 */
-	static void searchMaster() throws RemoteException, NotBoundException{
+	byte[] ciphertext = null;
+        String hostname = args[0];
+        String fileName = args[1];
+        byte[] knowText;
+        System.out.println("Cliente");
+        //String hostname = "localhost";
+        byte[] key = null;
 		
-	}
-	
+        System.out.println("nome arquivo: "+fileName);
+        if(Files.exists(Paths.get(fileName))) { 
+      
+            System.out.println("Arquivo existe");
+            
+            ciphertext = TrabUtils.readFile(fileName);
+                //Palavra conhecida
+            knowText = args[2].getBytes();
 
-	@Override
-	public void startSubAttack(byte[] ciphertext, byte[] knowntext, long initialwordindex, long finalwordindex,
-			int attackNumber, SlaveManager callbackinterface) throws RemoteException {
-		
-		callbackinterface.checkpoint(id, attackNumber, finalwordindex);
-		
-	}
-        
-        
-	public static void main(String[] args) throws RemoteException, NotBoundException {
-		
-		/***
-		 * Argumentos que devem ser fornecidos
-		 * args[0] - Endereço IP de onde o Registry está 	
-		 */
-		
-                	
-		boolean run = true;
-		int tryConnect = 0;
-		Registry registry;
-				
-		id = java.util.UUID.randomUUID();
-                name = "Escravo " + id;
-		String host = "localhost";
-                byte[] ciphertext = null;
-            try {
-                ciphertext = TrabUtils.readFile("teste.txt.cipher");
-            } catch (IOException ex) {
-                Logger.getLogger(TesteOverhead.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        else
+        {
+            
+            System.out.println("Arquivo não existe");
+         
+            int len;
+            
+            if(args.length > 3)
+                {
+                    System.out.println("tamanho informado");
+                    len = Integer.parseInt(args[3]);
+                }
+            else
+            {
+                System.out.println("tamanho nao informado");
+                len = (int) (Math.random() * (100000 - 1000)) + 1000;
+                len = len - (len%8);
             }
+        	
+	    ciphertext = TrabUtils.createRandomArrayBytes(len);
 		
-                dic = TrabUtils.readDictionary("dictionary.txt");
-				
-		System.out.println("Escravo: " + name + ", UUID: " + id.toString());
-		
-		try {
-			
-			obj = new TesteOverhead();
-			objref = (Slave) UnicastRemoteObject.exportObject(obj, 0);
-			System.out.println("Serviço remoto disponibilizado..");
-		} catch (RemoteException e2) {
-			// TODO Auto-generated catch block
-			e2.printStackTrace();
-		}
-		
+            System.out.println("Arquivo criado");
+			//extraindo somente 8 bytes de informação
+	    knowText = TrabUtils.extractKnowText(ciphertext, 8);
+								
+	    key = TrabUtils.sortKey().getBytes();
 
-		System.out.println("Localizando Servidor Mestre..");
+	    ciphertext = TrabUtils.encrypt(key,ciphertext);
+	    TrabUtils.saveFile(args[1], ciphertext);
+            System.out.println("Arquivo salvo");
 					
-		registry = LocateRegistry.getRegistry(host);
-		master = (Master) registry.lookup("Mestre");
-						
-		System.out.println("Registrando Interface no Mestre...");
-            try {
-                master.addSlave(objref, name,id);
-            } catch (RemoteException ex) {
-                Logger.getLogger(TesteOverhead.class.getName()).log(Level.SEVERE, null, ex);
-            }
-            
-            double t1 = System.nanoTime()/1_000_000_000;
-            objref.startSubAttack(ciphertext,"ipsum".getBytes(), 0,10,0, master);
-            double t2  = System.nanoTime()/1_000_000_000 - t1;
-            
-            System.out.println("overhead: "+t2);
-            
-            
-                
-    }
+	}
+        
+         try {
+
+                Registry registry = LocateRegistry.getRegistry(hostname);
+                Master master = (Master) registry.lookup("mestre");
+                long t1 = System.nanoTime()/1_000_000_000;
+                Guess[] guesses = master.attack(ciphertext, knowText);
+               long t2 = System.nanoTime()/1_000_000_000 - t1;
+               System.out.println("Overhead: "+t2);
+                System.out.println("-------------------------------------------------------");
+            } catch (Exception e) {
+                System.err.println("Master exception: " + e.toString());
+              
 		
-			
-	
-	
-	
+        }
+
+    }
+    
 }
+
