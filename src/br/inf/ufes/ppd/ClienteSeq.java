@@ -59,15 +59,23 @@ public class ClienteSeq {
 	List<Guess> guesses;
         double tempo1;
         double tempo2;
+        String filename;
+        
+        /*
+         * Argumentos que devem ser fornecidos 
+         * args[0] - arquivo para geração de texto
+         * args[1] - palavra conhecida
+         * args[2] - tamanho arquivo(somente em casos que o arquivo para geração de texto não exista)
+        */
       
-		
+        filename = args[0];
     
-        if(Files.exists(Paths.get(args[1]))) { 
+        if(Files.exists(Paths.get(filename))) { 
                 System.out.println("Arquivo existe");
 
-                ciphertext = TrabUtils.readFile(args[1]);
+                ciphertext = TrabUtils.readFile(filename);
                     //Palavra conhecida
-                palavra = args[2].getBytes();
+                palavra = args[1].getBytes();
 
             }
         else
@@ -76,12 +84,11 @@ public class ClienteSeq {
                 System.out.println("Arquivo não existe");
                 byte[] Text;
                 byte[] key;
-                byte[] knowText;
                 int len;
 
                 if(args.length > 2)
                     {
-                        len = Integer.parseInt(args[3]);
+                        len = Integer.parseInt(args[2]);
                     }
                 else
                 {
@@ -92,13 +99,13 @@ public class ClienteSeq {
 
                 Text = TrabUtils.createRandomArrayBytes(len);
 
-                            //extraindo somente 5 bytes de informação
+                            //extraindo somente 8 bytes de informação
                 palavra = TrabUtils.extractKnowText(Text, 8);
 
                 key = TrabUtils.sortKey().getBytes();
 
                 ciphertext = TrabUtils.encrypt(key,Text);
-                TrabUtils.saveFile(args[1], ciphertext);
+                TrabUtils.saveFile(filename, ciphertext);
             }
         
        
