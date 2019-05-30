@@ -33,7 +33,7 @@ public class SlaveDump implements Slave {
 
     private final String dicFilename = "dictionary.txt";
     //private final String docFilename = "IMG_0804.JPG.cipher";
-    
+
     List<String> dictionary = readDictionary(dicFilename);
 
     private UUID id = java.util.UUID.randomUUID();
@@ -105,7 +105,7 @@ public class SlaveDump implements Slave {
 
     //Verifica se o knowtext está na mensagem descriptografada
     private boolean checkDecryptedText(String textFilename, byte[] knowntext) {
-        if (checkFileExists(textFilename)) {         
+        if (checkFileExists(textFilename)) {
             byte[] decryptedText = readDecryptedTextAsBytes(textFilename);
             if (compareBytes(decryptedText, knowntext)) {
                 return true;
@@ -134,77 +134,8 @@ public class SlaveDump implements Slave {
             long initialwordindex, long finalwordindex, int attackNumber,
             SlaveManager callbackinterface) throws RemoteException {
 
-        currentIndex.put(attackNumber, (int) initialwordindex);
-
-        Thread thread = new Thread() {
-            public void run() {
-                Timer timer = new Timer();
-
-                //Envia um checkpoint a cada 10 segundos
-                timer.schedule(new java.util.TimerTask() {
-                    @Override
-                    public void run() {
-                        System.err.println("Tentando enviar o checkpoint...");
-                        try {
-                            callbackinterface.checkpoint(id, attackNumber, currentIndex.get(attackNumber));
-
-                            System.err.println("Checkpoint enviado com sucesso!");
-                        } catch (RemoteException e) {
-                            System.err.println("Error trying to call 'checkpoint' "
-                                    + "function: " + e.toString());
-                            e.printStackTrace();
-                        }
-                    }
-                },
-                        10000,
-                        10000);
-
-                for (long index = initialwordindex; index <= finalwordindex; index++) {
-                    currentIndex.put(attackNumber, (int) index);
-                    String key = dictionary.get((int) index);
-
-                    if (key.length() < 3) {
-                        continue;
-                    }
-
-
-                    System.out.println("key " + key);
-                    String decryptedFilename = key + ".msg";
-
-
-                   /* if (checkDecryptedText(decryptedFilename, knowntext)) {
-                        System.out.println("Decrypted filename: " + decryptedFilename);
-                        Guess guess = new Guess();
-                        guess.setKey(key);
-                        guess.setMessage(readDecryptedTextAsBytes(decryptedFilename));
-                        System.out.println("gueses passou");
-
-                        try {
-                            System.out.println("callback");
-                            callbackinterface.foundGuess(id, attackNumber, currentIndex.get(attackNumber), guess);
-                            System.out.println("passou");
-                        } catch (RemoteException ex) {
-                            System.out.println("Deu ruim");
-                            Logger.getLogger(SlaveImpl.class.getName()).log(Level.SEVERE, null, ex);
-                        }
-                    }*/
-                }
-
-                currentIndex.put(attackNumber, currentIndex.get(attackNumber) + 1);
-
-                try {
-                    callbackinterface.checkpoint(id, attackNumber, currentIndex.get(attackNumber));
-                } catch (RemoteException ex) {
-                    Logger.getLogger(SlaveImpl.class.getName()).log(Level.SEVERE, null, ex);
-                }
-
-                timer.cancel();
-                System.out.println("Fim do subtaque do escravo " + id);
-
-            }
-
-        };
-        thread.start();
+        System.out.println("Attack number: " + attackNumber);
+        callbackinterface.checkpoint(id, attackNumber, finalwordindex);
     }
 
     public static void main(String[] args) {
