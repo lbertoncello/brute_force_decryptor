@@ -20,14 +20,14 @@ public class ClienteTestes {
          * exista)
          */
 
-        String host = null, fileName, key;
+        String host = args[0];
+        String fileName, key;
         byte[] knowText;
         byte[] texto = null;
         int qtdTestes = 0, tamTexto;
         byte[] crypt;
         fileName = args[1];
         if (Files.exists(Paths.get(fileName))) {
-            host = args[0];
             knowText = args[2].getBytes();
             qtdTestes = Integer.parseInt(args[3]);
             texto = TrabUtils.readFile(fileName);
