@@ -118,6 +118,7 @@ public class ClienteSeq {
 			}
 			
 			System.out.println("Tempo total " +  tempo2  + " s");
+                        TrabUtils.Resultados("analise_cliente_seq.csv", ciphertext.length,tempo2);
 			
 		
 	}
