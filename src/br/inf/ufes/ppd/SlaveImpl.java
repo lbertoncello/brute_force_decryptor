@@ -33,7 +33,7 @@ public class SlaveImpl implements Slave {
 
     private final String dicFilename = "dictionary.txt";
     //private final String docFilename = "IMG_0804.JPG.cipher";
-    
+
     List<String> dictionary = readDictionary(dicFilename);
 
     private UUID id = java.util.UUID.randomUUID();
@@ -105,7 +105,7 @@ public class SlaveImpl implements Slave {
 
     //Verifica se o knowtext está na mensagem descriptografada
     private boolean checkDecryptedText(String textFilename, byte[] knowntext) {
-        if (checkFileExists(textFilename)) {         
+        if (checkFileExists(textFilename)) {
             byte[] decryptedText = readDecryptedTextAsBytes(textFilename);
             if (compareBytes(decryptedText, knowntext)) {
                 return true;
@@ -165,13 +165,12 @@ public class SlaveImpl implements Slave {
                     currentIndex.put(attackNumber, (int) index);
                     String key = dictionary.get((int) index);
 
-                    if(!decrypt.decrypt(key, ciphertext)) {
+                    if (!decrypt.decrypt(key, ciphertext)) {
                         continue;
                     }
 
                     System.out.println("key " + key);
                     String decryptedFilename = key + ".msg";
-
 
                     if (checkDecryptedText(decryptedFilename, knowntext)) {
                         System.out.println("Decrypted filename: " + decryptedFilename);
@@ -191,7 +190,7 @@ public class SlaveImpl implements Slave {
                     }
                 }
 
-                currentIndex.put(attackNumber, currentIndex.get(attackNumber) );
+                currentIndex.put(attackNumber, currentIndex.get(attackNumber));
 
                 try {
                     callbackinterface.checkpoint(id, attackNumber, currentIndex.get(attackNumber));
