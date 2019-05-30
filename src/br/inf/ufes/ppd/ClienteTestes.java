@@ -20,7 +20,7 @@ public class ClienteTestes {
          * exista)
          */
 
-        String host, fileName, key;
+        String host = null, fileName, key;
         byte[] knowText;
         byte[] texto = null;
         int qtdTestes = 0, tamTexto;
@@ -61,7 +61,7 @@ public class ClienteTestes {
         System.out.println("\nTudo pronto, iniciando conexão com o servidor mestre..");
 
         try {
-            Registry registry = LocateRegistry.getRegistry();
+            Registry registry = LocateRegistry.getRegistry(host);
             Master master = (Master) registry.lookup("mestre");
             double mean = 0;
             System.out.println("Envio dos dados feito de forma sequencial..");
