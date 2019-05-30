@@ -112,11 +112,11 @@ public class ClienteSeq {
 
 			Keys = TrabUtils.readDictionary("dictionary.txt");
 						
-			tempo1 = System.nanoTime()/1_000_000_000;
+			tempo1 = System.nanoTime();
 			guesses = attack(Keys, ciphertext,palavra);
-			tempo2 = System.nanoTime()/1_000_000_000 - tempo1;
+			tempo2 = System.nanoTime()- tempo1;
                         
-			
+			double tempo_final = tempo2/1_000_000_000;
 			if(guesses.size() > 0) {
 				System.out.println("Foram encontradas " + guesses.size() + " possíveis chaves.");
 				
@@ -124,8 +124,8 @@ public class ClienteSeq {
 				System.out.println("Sem palavras chave candidatas!");
 			}
 			
-			System.out.println("Tempo total " +  tempo2  + " s");
-                        TrabUtils.Resultados("analise_cliente_seq.csv", ciphertext.length,tempo2);
+			System.out.println("Tempo total " +  tempo_final  + " s");
+                        TrabUtils.Resultados("analise_cliente_seq.csv", ciphertext.length,tempo_final);
 			
 		
 	}

@@ -77,10 +77,12 @@ public class TesteOverhead {
 
                 Registry registry = LocateRegistry.getRegistry(hostname);
                 Master master = (Master) registry.lookup("mestre");
-                long t1 = System.nanoTime()/1_000_000_000;
+                double t1 = System.nanoTime();
                 Guess[] guesses = master.attack(ciphertext, knowText);
-               long t2 = System.nanoTime()/1_000_000_000 - t1;
-               System.out.println("Overhead: "+t2);
+                double t2 = System.nanoTime() - t1;
+                double t3 = t2/1_000_000_000;
+               System.out.println("Overhead: "+t3);
+               TrabUtils.Resultados("analise_overhead.csv", ciphertext.length,t3);
                 System.out.println("-------------------------------------------------------");
             } catch (Exception e) {
                 System.err.println("Master exception: " + e.toString());
