@@ -26,6 +26,7 @@ public class TesteOverhead {
         String hostname = args[0];
         String fileName = args[1];
         byte[] knowText;
+        int qtdTestes =0;
         System.out.println("Cliente");
         //String hostname = "localhost";
         byte[] key = null;
@@ -38,6 +39,7 @@ public class TesteOverhead {
             ciphertext = TrabUtils.readFile(fileName);
                 //Palavra conhecida
             knowText = args[2].getBytes();
+            qtdTestes = Integer.parseInt(args[3]);
 
         }
         else
@@ -77,12 +79,29 @@ public class TesteOverhead {
 
                 Registry registry = LocateRegistry.getRegistry(hostname);
                 Master master = (Master) registry.lookup("mestre");
-                double t1 = System.nanoTime();
-                Guess[] guesses = master.attack(ciphertext, knowText);
-                double t2 = System.nanoTime() - t1;
-                double t3 = t2/1_000_000_000;
-               System.out.println("Overhead: "+t3);
-               TrabUtils.Resultados("analise_overhead.csv", ciphertext.length,t3);
+                
+                double mean = 0;
+            System.out.println("Teste Overhead..");
+
+            for (int i = 0; i < qtdTestes+1; i++) {
+                //System.out.print("Teste " + (i + 1));
+                double tempoInicio = System.nanoTime() / 1000000000.0;
+                master.attack(ciphertext, knowText);
+                double tempoFinal = System.nanoTime() / 1000000000.0;
+                double diffTempo = tempoFinal - tempoInicio;
+                
+                if(i > 0){
+                mean += diffTempo;
+                }
+                
+                //System.out.println(" - " + diffTempo + " s");
+                TrabUtils.Resultados("analise_cliente.csv", ciphertext.length, diffTempo);
+
+            }
+            mean = mean / qtdTestes;
+            
+               System.out.println("Overhead: "+mean);
+               TrabUtils.Resultados("analise_overhead.csv", ciphertext.length,mean);
                 System.out.println("-------------------------------------------------------");
             } catch (Exception e) {
                 System.err.println("Master exception: " + e.toString());
