@@ -1,10 +1,9 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Armazena as informações sobre o subataque de um escravo.
  */
-package br.inf.ufes.ppd;
+package br.inf.ufes.ppd.utils;
 
+import br.inf.ufes.ppd.Slave;
 import java.util.UUID;
 
 /**
@@ -13,7 +12,7 @@ import java.util.UUID;
  */
 public class SlaveInfo {
 
-    private long time;
+    private double time;
     private UUID id;
     private int initialIndex;
     private int finalIndex;
@@ -41,11 +40,11 @@ public class SlaveInfo {
 
     }
 
-    public long getTime() {
+    public double getTime() {
         return time;
     }
 
-    public void setTime(long time) {
+    public void setTime(double time) {
         this.time = time;
     }
 

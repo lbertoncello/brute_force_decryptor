@@ -1,5 +1,10 @@
-package br.inf.ufes.ppd;
+/*
+ * Cliente especial para a medição de tempos.
+ */
+package br.inf.ufes.ppd.utils.special;
 
+import br.inf.ufes.ppd.Master;
+import br.inf.ufes.ppd.utils.TrabUtils;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -9,7 +14,7 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.security.NoSuchAlgorithmException;
 
-public class ClienteTestes {
+public class ClientTests {
 
     public static void main(String args[]) throws NotBoundException, IOException, NoSuchAlgorithmException, Exception {
         /**
@@ -74,11 +79,11 @@ public class ClienteTestes {
                 double diffTempo = tempoFinal - tempoInicio;
                 mean += diffTempo;
                 System.out.println(" - " + diffTempo + " s");
-                TrabUtils.Resultados("analise_cliente.csv", texto.length, diffTempo);
+                TrabUtils.saveResults("analise_cliente.csv", texto.length, diffTempo);
 
             }
             mean = mean / qtdTestes;
-            TrabUtils.Resultados("analise_cliente_mean.csv", texto.length, mean);
+            TrabUtils.saveResults("analise_cliente_mean.csv", texto.length, mean);
 
         } catch (RemoteException e) {
             // TODO Auto-generated catch block

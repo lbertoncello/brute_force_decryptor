@@ -1,5 +1,6 @@
-package br.inf.ufes.ppd;
+package br.inf.ufes.ppd.utils;
 
+import br.inf.ufes.ppd.Guess;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -19,12 +20,12 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.SecretKeySpec;
 
-/***
+/**
+ * *
  * Classe de utilidades para utilização por parte do Aplicativo Cliente.
  */
-
 public class TrabUtils {
-    
+
     public static List<String> readDictionary(String filename) {
         List<String> dictionary = new ArrayList<>();
 
@@ -32,14 +33,12 @@ public class TrabUtils {
             FileReader file = new FileReader(filename);
             BufferedReader readFile = new BufferedReader(file);
 
-            String line = readFile.readLine(); // lê a primeira linha
-// a variável "linha" recebe o valor "null" quando o processo
-// de repetição atingir o final do arquivo texto
+            String line = readFile.readLine();
 
             while (line != null) {
                 dictionary.add(line);
 
-                line = readFile.readLine(); // lê da segunda até a última linha
+                line = readFile.readLine();
             }
 
             file.close();
@@ -50,8 +49,8 @@ public class TrabUtils {
 
         return dictionary;
     }
-    
-     //Realiza letura de arquivo do dicionário
+
+    //Realiza letura de arquivo do dicionário
     public static byte[] readFile(String filename) throws IOException {
         File file = new File(filename);
         InputStream is = new FileInputStream(file);
@@ -83,133 +82,125 @@ public class TrabUtils {
 
         byte[] encrypted = cipher.doFinal(message);
 
-        //saveFile(filename + ".cipher", encrypted);
-
         return encrypted;
-
     }
-    
-    public static byte[] decrypt(byte []key, byte[] message) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, IOException 
-        {
-            byte[] decrypted;
-            SecretKeySpec keySpec = new SecretKeySpec(key, "Blowfish");
 
-	    Cipher cipher = Cipher.getInstance("Blowfish");
-	    cipher.init(Cipher.DECRYPT_MODE, keySpec);
-                       
-                        
-			System.out.println("message size (bytes) = "+ message.length);
-            try {
+    public static byte[] decrypt(byte[] key, byte[] message) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, IOException {
+        byte[] decrypted;
+        SecretKeySpec keySpec = new SecretKeySpec(key, "Blowfish");
 
-			decrypted = cipher.doFinal(message);
+        Cipher cipher = Cipher.getInstance("Blowfish");
+        cipher.init(Cipher.DECRYPT_MODE, keySpec);
 
-		} catch (javax.crypto.BadPaddingException e) {
-			// essa excecao e jogada quando a senha esta incorreta
-			// porem nao quer dizer que a senha esta correta se nao jogar essa excecao
-			System.out.println("Senha invalida.");
-                        return null;
+        System.out.println("message size (bytes) = " + message.length);
+        try {
 
-		} 
+            decrypted = cipher.doFinal(message);
+
+        } catch (javax.crypto.BadPaddingException e) {
+            // essa excecao e jogada quando a senha esta incorreta
+            // porem nao quer dizer que a senha esta correta se nao jogar essa excecao
+            System.out.println("Senha invalida.");
+            return null;
+
+        }
         return decrypted;
     }
-	
-	
 
-	
-	/***
-	 * Sorteia uma string dentre um arquivo com várias chaves.
-	 * @param path Local do arquivo com as chaves disponíveis
-	 * @return String: chave sorteada
-	 * @throws IOException 
-	 */
-    
-	public static String sortKey() throws IOException {
-		String filename = "dictionary.txt";
-		List<String> dic = readDictionary(filename);
-                Random r = new Random();
-		int ChoosenIndex = r.nextInt(dic.size() + 1);
-		return dic.get(ChoosenIndex);
-	}
-		
-	/***
-	 * Cria um vetor de bytes de tamanho aleatório dentro do range especificado.
-	 * @param min Quantidade minima de bytes
-	 * @param max Quantidade maxima de bytes
-	 * @return Vetor de bytes preenchidos com valores aleatórios
-	 */
-	public static byte[] createRandomArrayBytes(int length) throws NoSuchAlgorithmException {
-		byte[] bytes = new byte[length];
-		new Random().nextBytes(bytes);
-		return bytes;
-	}
-		
-	/***
-	 * Extrai um determinado trecho de um vetor de bytes
-	 * @param text Vetor de byytes com a informação
-	 * @param qtdBytes Quantidade de informação extraída
-	 * @return Vetor de bytes contendo a informação
-	 */
-	public static byte[] extractKnowText(byte[] text, int qtdBytes) {
-		byte[] knowText = new byte[qtdBytes];
-		int metade = (int)(text.length / 2);
-		for(int i = 0; i < qtdBytes; i++)
-                {
-			knowText[i] = text[metade+i];
-		}		
-		return knowText;
-	}
-        
-        
-        public static Guess isValidKey(byte[] ciphertext, byte[] knowntext, String key) {
-		Guess guess = null;
-		try {
-			byte[] dec = TrabUtils.decrypt(key.getBytes(), ciphertext);
-			
-			if(findBytes(dec, knowntext)) {
-				guess = new Guess();
-				guess.setKey(key);
-				guess.setMessage(dec);
-			}			
-					
-		} catch (Exception e) {
-			guess = null;
-		}
-		
-		return guess;
-	}
-        
-        
-        public static boolean findBytes(byte[] data, byte[] find) {
-		try {
-			if(find.length <= data.length) {
-				for(int i = 0; i < data.length; i++) {
-					if(data[i] == find[0]) {
-						int j, k;
-						for(j = 1, k = i + 1; j < find.length; j++, k++) {
-							if(data[k] != find[j]) {
-								break;
-							}
-						}
-						
-						if(j == find.length) {
-							return true;
-						}
-					}
-				}
-			}
-		}catch (Exception e) {
-			return false;
-		}
-				
-		return false;
-	}
-        
-        public static void Resultados(String arq, int tam, double time) throws IOException {
-		BufferedWriter buffWrite = new BufferedWriter(new FileWriter(arq, true));
+    /**
+     * *
+     * Sorteia uma string dentre um arquivo com várias chaves.
+     *
+     * @param path Local do arquivo com as chaves disponíveis
+     * @return String: chave sorteada
+     * @throws IOException
+     */
+    public static String sortKey() throws IOException {
+        String filename = "dictionary.txt";
+        List<String> dic = readDictionary(filename);
+        Random r = new Random();
+        int ChoosenIndex = r.nextInt(dic.size() + 1);
+        return dic.get(ChoosenIndex);
+    }
+
+    /**
+     * *
+     * Cria um vetor de bytes de tamanho aleatório dentro do range especificado.
+     *
+     * @param min Quantidade minima de bytes
+     * @param max Quantidade maxima de bytes
+     * @return Vetor de bytes preenchidos com valores aleatórios
+     */
+    public static byte[] createRandomArrayBytes(int length) throws NoSuchAlgorithmException {
+        byte[] bytes = new byte[length];
+        new Random().nextBytes(bytes);
+        return bytes;
+    }
+
+    /**
+     * *
+     * Extrai um determinado trecho de um vetor de bytes
+     *
+     * @param text Vetor de byytes com a informação
+     * @param qtdBytes Quantidade de informação extraída
+     * @return Vetor de bytes contendo a informação
+     */
+    public static byte[] extractKnowText(byte[] text, int qtdBytes) {
+        byte[] knowText = new byte[qtdBytes];
+        int metade = (int) (text.length / 2);
+        for (int i = 0; i < qtdBytes; i++) {
+            knowText[i] = text[metade + i];
+        }
+        return knowText;
+    }
+
+    public static Guess isValidKey(byte[] ciphertext, byte[] knowntext, String key) {
+        Guess guess = null;
+        try {
+            byte[] dec = TrabUtils.decrypt(key.getBytes(), ciphertext);
+
+            if (findBytes(dec, knowntext)) {
+                guess = new Guess();
+                guess.setKey(key);
+                guess.setMessage(dec);
+            }
+
+        } catch (Exception e) {
+            guess = null;
+        }
+
+        return guess;
+    }
+
+    public static boolean findBytes(byte[] data, byte[] find) {
+        try {
+            if (find.length <= data.length) {
+                for (int i = 0; i < data.length; i++) {
+                    if (data[i] == find[0]) {
+                        int j, k;
+                        for (j = 1, k = i + 1; j < find.length; j++, k++) {
+                            if (data[k] != find[j]) {
+                                break;
+                            }
+                        }
+
+                        if (j == find.length) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            return false;
+        }
+
+        return false;
+    }
+
+    public static void saveResults(String arq, int tam, double time) throws IOException {
+        BufferedWriter buffWrite = new BufferedWriter(new FileWriter(arq, true));
         buffWrite.append(tam + "," + time + System.getProperty("line.separator"));
         buffWrite.close();
-	}
+    }
 
 }
-
-

@@ -1,10 +1,13 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Classe que representa a implementação do escravo.
  */
-package br.inf.ufes.ppd;
+package br.inf.ufes.ppd.impl;
 
+import br.inf.ufes.ppd.utils.Decrypt;
+import br.inf.ufes.ppd.Guess;
+import br.inf.ufes.ppd.Master;
+import br.inf.ufes.ppd.Slave;
+import br.inf.ufes.ppd.SlaveManager;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -32,12 +35,10 @@ import java.util.logging.Logger;
 public class SlaveImpl implements Slave {
 
     private final String dicFilename = "dictionary.txt";
-    //private final String docFilename = "IMG_0804.JPG.cipher";
-
     List<String> dictionary = readDictionary(dicFilename);
 
     private UUID id = java.util.UUID.randomUUID();
-
+    //Armazena o índice corrente em cada um dos ataques que o escravo está realizando.
     private Map<Integer, Integer> currentIndex = new ConcurrentHashMap<>();
 
     public void setId(UUID id) {
@@ -55,14 +56,12 @@ public class SlaveImpl implements Slave {
             FileReader file = new FileReader(filename);
             BufferedReader readFile = new BufferedReader(file);
 
-            String line = readFile.readLine(); // lê a primeira linha
-// a variável "linha" recebe o valor "null" quando o processo
-// de repetição atingir o final do arquivo texto
+            String line = readFile.readLine();
 
             while (line != null) {
                 dictionary.add(line.replace("\n", "").replace(" ", ""));
 
-                line = readFile.readLine(); // lê da segunda até a última linha
+                line = readFile.readLine(); // 
             }
 
             file.close();
@@ -74,6 +73,9 @@ public class SlaveImpl implements Slave {
         return dictionary;
     }
 
+    /*
+        Retorna um vetor de bytes com o texto decriptado.
+     */
     private byte[] readDecryptedTextAsBytes(String filename) {
 
         Path fileLocation = Paths.get(filename);
@@ -88,7 +90,7 @@ public class SlaveImpl implements Slave {
         return data;
     }
 
-    //Retorna true se 
+    //Retorna true se o knowntext estiver contido em text.
     private boolean compareBytes(byte[] text, byte[] knowntext) {
         for (int i = 0; i < text.length - knowntext.length; i++) {
             for (int j = 0; j < knowntext.length; j++) {
@@ -137,6 +139,7 @@ public class SlaveImpl implements Slave {
 
         currentIndex.put(attackNumber, (int) initialwordindex);
 
+        //Thread que vai realizar o processamento do subataque.
         Thread thread = new Thread() {
             public void run() {
                 Decrypt decrypt = new Decrypt();
@@ -165,6 +168,7 @@ public class SlaveImpl implements Slave {
                     currentIndex.put(attackNumber, (int) index);
                     String key = dictionary.get((int) index);
 
+                    //Se a decriptação retornar erro, pula para a próxima palavra.
                     if (!decrypt.decrypt(key, ciphertext)) {
                         continue;
                     }
@@ -172,19 +176,19 @@ public class SlaveImpl implements Slave {
                     System.out.println("key " + key);
                     String decryptedFilename = key + ".msg";
 
+                    //Verifica se o texto descriptografado possui a palavra conhecida.
                     if (checkDecryptedText(decryptedFilename, knowntext)) {
                         System.out.println("Decrypted filename: " + decryptedFilename);
                         Guess guess = new Guess();
                         guess.setKey(key);
                         guess.setMessage(readDecryptedTextAsBytes(decryptedFilename));
-                        System.out.println("gueses passou");
+                        System.out.println("Guess encontrado!");
 
                         try {
-                            System.out.println("callback");
+                            System.out.println("Enviando o callback...");
                             callbackinterface.foundGuess(id, attackNumber, currentIndex.get(attackNumber), guess);
-                            System.out.println("passou");
                         } catch (RemoteException ex) {
-                            System.out.println("Deu ruim");
+                            System.out.println("Erro ao enviar o callback");
                             Logger.getLogger(SlaveImpl.class.getName()).log(Level.SEVERE, null, ex);
                         }
                     }
@@ -192,6 +196,7 @@ public class SlaveImpl implements Slave {
 
                 currentIndex.put(attackNumber, currentIndex.get(attackNumber));
 
+                //Envia o checkpoint final
                 try {
                     callbackinterface.checkpoint(id, attackNumber, currentIndex.get(attackNumber));
                 } catch (RemoteException ex) {
@@ -200,9 +205,7 @@ public class SlaveImpl implements Slave {
 
                 timer.cancel();
                 System.out.println("Fim do subtaque do escravo " + id);
-
             }
-
         };
         thread.start();
     }

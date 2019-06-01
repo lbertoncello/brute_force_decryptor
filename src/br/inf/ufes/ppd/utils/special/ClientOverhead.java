@@ -1,10 +1,10 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Cliente especial para a medição do overhead.
  */
-package br.inf.ufes.ppd;
+package br.inf.ufes.ppd.utils.special;
 
+import br.inf.ufes.ppd.Master;
+import br.inf.ufes.ppd.utils.TrabUtils;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.rmi.NotBoundException;
@@ -17,7 +17,7 @@ import java.rmi.registry.Registry;
  * @author lucas
  * Classe responsável por mandar o mestre iniciar o ataque.
  */
-public class TesteOverhead {
+public class ClientOverhead {
     
 
     public static void main(String[] args) throws RemoteException, NotBoundException, Exception {
@@ -95,13 +95,13 @@ public class TesteOverhead {
                 }
                 
                 //System.out.println(" - " + diffTempo + " s");
-                TrabUtils.Resultados("analise_cliente.csv", ciphertext.length, diffTempo);
+                TrabUtils.saveResults("analise_cliente.csv", ciphertext.length, diffTempo);
 
             }
             mean = mean / qtdTestes;
             
                System.out.println("Overhead: "+mean);
-               TrabUtils.Resultados("analise_overhead.csv", ciphertext.length,mean);
+               TrabUtils.saveResults("analise_overhead.csv", ciphertext.length,mean);
                 System.out.println("-------------------------------------------------------");
             } catch (Exception e) {
                 System.err.println("Master exception: " + e.toString());

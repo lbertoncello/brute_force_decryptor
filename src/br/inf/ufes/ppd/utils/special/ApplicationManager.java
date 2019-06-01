@@ -1,10 +1,10 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Cliente especial que não necessita de argumentos da linha de comando (apenas para testes).
  */
-package br.inf.ufes.ppd;
+package br.inf.ufes.ppd.utils.special;
 
+import br.inf.ufes.ppd.Guess;
+import br.inf.ufes.ppd.Master;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;

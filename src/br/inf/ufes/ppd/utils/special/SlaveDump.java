@@ -1,10 +1,12 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Escravo especial para a medição do overhead.
  */
-package br.inf.ufes.ppd;
+package br.inf.ufes.ppd.utils.special;
 
+import br.inf.ufes.ppd.Master;
+import br.inf.ufes.ppd.Slave;
+import br.inf.ufes.ppd.SlaveManager;
+import br.inf.ufes.ppd.impl.SlaveImpl;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -32,7 +34,6 @@ import java.util.logging.Logger;
 public class SlaveDump implements Slave {
 
     private final String dicFilename = "dictionary.txt";
-    //private final String docFilename = "IMG_0804.JPG.cipher";
 
     List<String> dictionary = readDictionary(dicFilename);
 

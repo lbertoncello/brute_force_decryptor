@@ -1,4 +1,4 @@
-package br.inf.ufes.ppd;
+package br.inf.ufes.ppd.utils;
 
 import java.io.File;
 import java.io.FileInputStream;
