@@ -29,6 +29,7 @@ public class Client {
         byte[] key = null;
 
         System.out.println("nome arquivo: " + filename);
+        //Verifica se foi passado um arquivo criptografado
         if (Files.exists(Paths.get(filename))) {
 
             System.out.println("Arquivo existe");
@@ -36,7 +37,7 @@ public class Client {
             ciphertext = TrabUtils.readFile(filename);
             //Palavra conhecida
             knowntext = args[2].getBytes();
-
+        //Caso não tenha sido, gera-se um aleatóriamente
         } else {
 
             System.out.println("Arquivo não existe");
